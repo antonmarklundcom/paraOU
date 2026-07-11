@@ -22,10 +22,12 @@ Code is built phase by phase per `plan/`.
 | [docs/04-ai-matching.md](docs/04-ai-matching.md) | How AI matching works (filters → embeddings → LLM scoring) |
 | [docs/05-ux-ui.md](docs/05-ux-ui.md) | UX/UI specification for the tender overview and detail pages |
 | [docs/06-risks.md](docs/06-risks.md) | Known issues, risks, and mitigations |
+| [docs/07-improvement-ideas.md](docs/07-improvement-ideas.md) | Post-launch roadmap and feature ideas |
 
 ## Build phases (for the coding agent)
 
 Execute in order. Each phase doc is self-contained with acceptance criteria.
+Start each build session with the prompt in [plan/KICKOFF-PROMPT.md](plan/KICKOFF-PROMPT.md).
 
 1. [plan/PHASE-1-ingestion.md](plan/PHASE-1-ingestion.md) — DNCP client + database + sync worker
 2. [plan/PHASE-2-api.md](plan/PHASE-2-api.md) — Internal REST API: search, filter, sort
