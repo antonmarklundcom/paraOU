@@ -1,0 +1,149 @@
+{
+  "uri": "https://contrataciones.gov.py/datos/api/v3/ocds/record-package?page=1",
+  "version": "1.1",
+  "publishedDate": "2024-03-15T12:00:00Z",
+  "publisher": { "name": "Dirección Nacional de Contrataciones Públicas", "scheme": "PY-DNCP" },
+  "license": "https://creativecommons.org/licenses/by/4.0/",
+  "records": [
+    {
+      "ocid": "ocds-03ad3f-390111",
+      "compiledRelease": {
+        "ocid": "ocds-03ad3f-390111",
+        "id": "390111-compiled",
+        "date": "2024-03-10T14:30:00Z",
+        "tag": ["compiled"],
+        "initiationType": "tender",
+        "language": "es",
+        "parties": [
+          {
+            "id": "PY-RUC-80016909",
+            "name": "Ministerio de Salud Pública y Bienestar Social",
+            "roles": ["buyer", "procuringEntity"],
+            "identifier": { "scheme": "PY-RUC", "id": "80016909-2", "legalName": "MSPBS" },
+            "address": { "region": "Central", "locality": "Asunción", "countryName": "Paraguay" }
+          }
+        ],
+        "buyer": { "id": "PY-RUC-80016909", "name": "Ministerio de Salud Pública y Bienestar Social" },
+        "tender": {
+          "id": "390111",
+          "title": "Adquisición de Insumos Médicos para Hospitales Regionales",
+          "description": "Provisión de jeringas, guantes y material descartable para la red de hospitales.",
+          "status": "active",
+          "procurementMethod": "open",
+          "procurementMethodDetails": "Licitación Pública Nacional",
+          "mainProcurementCategory": "goods",
+          "value": { "amount": 4500000000, "currency": "PYG" },
+          "minValue": { "amount": 4000000000, "currency": "PYG" },
+          "tenderPeriod": { "startDate": "2024-03-10T08:00:00Z", "endDate": "2024-04-05T11:00:00Z" },
+          "enquiryPeriod": { "endDate": "2024-03-25T11:00:00Z" },
+          "procuringEntity": { "id": "PY-RUC-80016909", "name": "Ministerio de Salud Pública y Bienestar Social" },
+          "items": [
+            {
+              "id": "1",
+              "classification": { "scheme": "UNSPSC", "id": "42142523", "description": "Jeringas hipodérmicas" }
+            }
+          ],
+          "documents": [
+            {
+              "id": "pliego-390111",
+              "documentType": "biddingDocuments",
+              "url": "https://contrataciones.gov.py/licitaciones/convocatoria/390111/pliego.pdf"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "ocid": "ocds-03ad3f-388502",
+      "compiledRelease": {
+        "ocid": "ocds-03ad3f-388502",
+        "id": "388502-compiled",
+        "date": "2024-03-08T09:15:00Z",
+        "tag": ["compiled"],
+        "initiationType": "tender",
+        "language": "es",
+        "parties": [
+          {
+            "id": "PY-RUC-30002020",
+            "name": "Municipalidad de Ciudad del Este",
+            "roles": ["buyer"],
+            "identifier": { "scheme": "PY-RUC", "id": "30002020-1" },
+            "address": { "region": "Alto Paraná", "locality": "Ciudad del Este", "countryName": "Paraguay" }
+          },
+          {
+            "id": "PY-RUC-80099887",
+            "name": "Constructora del Este S.A.",
+            "roles": ["supplier"],
+            "identifier": { "scheme": "PY-RUC", "id": "80099887-3" }
+          }
+        ],
+        "buyer": { "id": "PY-RUC-30002020", "name": "Municipalidad de Ciudad del Este" },
+        "tender": {
+          "id": "388502",
+          "title": "Construcción de Pavimento Asfáltico en Barrio San Blas",
+          "description": "Obras de pavimentación de 12 cuadras incluyendo cordones y desagüe pluvial.",
+          "status": "complete",
+          "procurementMethod": "open",
+          "procurementMethodDetails": "Licitación por Concurso de Ofertas",
+          "mainProcurementCategory": "works",
+          "value": { "amount": 2800000000, "currency": "PYG" },
+          "tenderPeriod": { "startDate": "2024-01-15T08:00:00Z", "endDate": "2024-02-10T11:00:00Z" },
+          "items": [
+            {
+              "id": "1",
+              "classification": { "scheme": "UNSPSC", "id": "72141115", "description": "Servicios de pavimentación" }
+            }
+          ]
+        },
+        "awards": [
+          {
+            "id": "adj-1",
+            "title": "Adjudicación a Constructora del Este S.A.",
+            "status": "active",
+            "date": "2024-03-05T16:00:00Z",
+            "value": { "amount": 2750000000, "currency": "PYG" },
+            "suppliers": [{ "id": "PY-RUC-80099887", "name": "Constructora del Este S.A." }]
+          }
+        ]
+      }
+    },
+    {
+      "ocid": "ocds-03ad3f-391777",
+      "compiledRelease": {
+        "ocid": "ocds-03ad3f-391777",
+        "id": "391777-compiled",
+        "date": "2024-03-14T10:00:00Z",
+        "tag": ["compiled"],
+        "initiationType": "tender",
+        "language": "es",
+        "parties": [
+          {
+            "id": "PY-RUC-80017059",
+            "name": "Ministerio de Educación y Ciencias",
+            "roles": ["buyer"],
+            "identifier": { "scheme": "PY-RUC", "id": "80017059-0" },
+            "address": { "region": "Itapúa", "locality": "Encarnación", "countryName": "Paraguay" }
+          }
+        ],
+        "buyer": { "id": "PY-RUC-80017059", "name": "Ministerio de Educación y Ciencias" },
+        "tender": {
+          "id": "391777",
+          "title": "Provisión de Kits Escolares 2024",
+          "description": "Compra de útiles y textos escolares para instituciones educativas de Itapúa.",
+          "status": "planned",
+          "procurementMethod": "selective",
+          "procurementMethodDetails": "Contratación Directa",
+          "mainProcurementCategory": "goods",
+          "value": { "amount": 950000000, "currency": "PYG" },
+          "tenderPeriod": { "startDate": "2024-04-01T08:00:00Z" },
+          "items": [
+            {
+              "id": "1",
+              "classification": { "scheme": "UNSPSC", "id": "44121700", "description": "Útiles escolares" }
+            }
+          ]
+        }
+      }
+    }
+  ]
+}
