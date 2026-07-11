@@ -1,0 +1,7 @@
+{
+  "extends": ["next/core-web-vitals", "next/typescript", "prettier"],
+  "ignorePatterns": ["node_modules/", ".next/", "src/generated/", "prisma/migrations/"],
+  "rules": {
+    "@typescript-eslint/no-explicit-any": "warn"
+  }
+}
