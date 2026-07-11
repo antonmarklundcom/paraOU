@@ -8,21 +8,55 @@ actually win, ranked, with a plain-language explanation."
 
 ## Status
 
-🚧 **Phase 1 (ingestion) complete — running on fixtures.** The DNCP client, Postgres
-schema, sync worker, and backfill CLI are built and tested. Because the build
-environment could not reach `contrataciones.gov.py` (network policy — docs/06 risk
-T4) and no DNCP credentials were available, ingestion currently runs against
-synthetic OCDS fixtures. The live API paths/shapes still need verification — see
-[owner checklist](#before-phase-2-owner-must-verify) below. Phases 2–6 not started.
+🚧 **Phases 1–2 complete.** Phase 1: DNCP client, Postgres schema, sync worker,
+backfill CLI (running on synthetic OCDS fixtures — the build environment couldn't
+reach `contrataciones.gov.py`, docs/06 risk T4; live API paths/shapes still need
+verification, see [owner checklist](#before-phase-2-owner-must-verify)). Phase 2: the
+internal search/filter/sort REST API the frontend will consume.
 
 | Phase | Status |
 |---|---|
 | 1 — Ingestion (client, DB, worker) | ✅ built & tested (fixtures mode) |
-| 2 — Internal API | ⬜ not started |
-| 3 — Frontend | ⬜ not started |
+| 2 — Internal API (search/filter/sort) | ✅ built & tested |
+| 3 — Frontend (overview, detail, SEO) | ✅ built & tested |
 | 4 — AI matching | ⬜ not started |
 | 5 — Accounts & alerts | ⬜ not started |
 | 6 — Monetization | ⬜ not started |
+
+### API (Phase 2)
+
+Public, read-only JSON endpoints under `/api` (per-IP rate limited, zod-validated,
+envelope `{ ok, data }` / `{ ok, error }`):
+
+| Endpoint | Purpose |
+|---|---|
+| `GET /api/tenders` | Search/filter/sort feed. Params: `q` (Spanish accent-insensitive FTS), `status[]`, `category[]` (N5 prefix), `buyer`, `department[]`, `method[]`, `amountMin/Max` + `currency` (USD auto-converted), `publishedFrom/To`, `deadlineWithinDays`, `sort` (`newest`\|`deadline`\|`amount`\|`relevance`), keyset `cursor`, `limit`≤50. |
+| `GET /api/tenders/[ocid]` | Full detail: awards, buyer, timeline events, buyer-history teaser. |
+| `GET /api/buyers?query=` | Accent-insensitive buyer typeahead. |
+| `GET /api/buyers/[id]` · `GET /api/suppliers/[id]` | Profile + aggregates (cached 1h). |
+| `GET /api/meta/filters` | Filter option lists with counts (cached 1h). |
+| `GET /api/health` | Ingestion status + row counts. |
+
+Pagination is keyset (seek) on `(sortValue, ocid)` — stable under concurrent inserts —
+backed by expression indexes matching each sort (verified index-backed via
+`EXPLAIN ANALYZE`).
+
+### Frontend (Phase 3)
+
+Spanish-first public UI (docs/05), SSR for SEO, light + dark, responsive to 360px:
+
+| Route | What |
+|---|---|
+| `/` | Landing: value prop, live counters (open tenders / value in play), top categories. |
+| `/licitaciones` | Overview: URL-serialized filter rail (works with JS disabled), sort, active-filter chips, SSR first page + client "load more". |
+| `/licitaciones/[ocid]` | Detail: countdown hero, key-facts grid, timeline, awards, buyer-history teaser, DNCP document links, `.ics` download, follow/bid/dismiss (localStorage until Phase 5), JSON-LD. |
+| `/compradores/[id]` · `/proveedores/[id]` | Buyer/supplier profiles + aggregates. |
+| `/sitemap.xml` · `/robots.txt` | SEO. |
+
+Money formatted `es-PY` (compact "Gs. 4,5 mil M"), dates in `America/Asuncion`
+(fixed timezone — no UTC leakage). Run `npm run e2e` for the Playwright golden path
+(browse → filter → detail → download .ics). The AI match badge renders behind
+`NEXT_PUBLIC_SHOW_MATCH_BADGE=1` with mock data (real matching is Phase 4).
 
 ### Running locally (Phase 1)
 

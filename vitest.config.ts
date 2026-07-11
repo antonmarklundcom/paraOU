@@ -9,6 +9,9 @@ export default defineConfig({
     globals: true,
     // Load .env before test modules import (env.ts validates at import time).
     setupFiles: ["dotenv/config"],
+    // Integration suites share one Postgres and each truncates/seeds in beforeAll,
+    // so run test files serially to avoid cross-file DB races.
+    fileParallelism: false,
   },
   resolve: {
     alias: {

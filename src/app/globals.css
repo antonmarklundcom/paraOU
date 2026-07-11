@@ -1,3 +1,61 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/*
+ * Design tokens (docs/05 visual system): shadcn-style CSS variables, light + dark,
+ * one accent color — a deep red nodding to the Paraguayan flag. WCAG AA contrast.
+ */
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 222 20% 12%;
+    --muted: 210 20% 96%;
+    --muted-foreground: 215 16% 42%;
+    --card: 0 0% 100%;
+    --card-foreground: 222 20% 12%;
+    --border: 214 20% 88%;
+    --input: 214 20% 88%;
+    --ring: 349 65% 45%;
+    --primary: 349 65% 45%; /* deep red */
+    --primary-foreground: 0 0% 100%;
+    --accent: 210 20% 96%;
+    --accent-foreground: 222 20% 12%;
+
+    /* status colors */
+    --status-open: 145 60% 32%;
+    --status-closing: 35 92% 42%;
+    --status-closed: 215 14% 50%;
+
+    --radius: 0.6rem;
+  }
+
+  .dark {
+    --background: 222 24% 9%;
+    --foreground: 210 20% 92%;
+    --muted: 217 20% 16%;
+    --muted-foreground: 215 16% 62%;
+    --card: 222 22% 12%;
+    --card-foreground: 210 20% 92%;
+    --border: 217 20% 20%;
+    --input: 217 20% 22%;
+    --ring: 349 70% 58%;
+    --primary: 349 70% 56%;
+    --primary-foreground: 0 0% 100%;
+    --accent: 217 20% 18%;
+    --accent-foreground: 210 20% 92%;
+
+    --status-open: 145 55% 55%;
+    --status-closing: 38 92% 60%;
+    --status-closed: 215 14% 62%;
+  }
+
+  * {
+    border-color: hsl(var(--border));
+  }
+  body {
+    background-color: hsl(var(--background));
+    color: hsl(var(--foreground));
+    -webkit-font-smoothing: antialiased;
+  }
+}

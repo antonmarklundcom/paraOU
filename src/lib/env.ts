@@ -29,6 +29,13 @@ const schema = z.object({
   DNCP_MAX_REQUESTS_PER_WINDOW: z.coerce.number().positive().default(3000),
 
   LOG_LEVEL: z.enum(["fatal", "error", "warn", "info", "debug", "trace", "silent"]).default("info"),
+
+  // ── API layer (Phase 2) ────────────────────────────────────────────
+  // Fallback PYG-per-USD rate used when the ExchangeRate table is empty
+  // (docs/03: amounts stored in PYG; USD filter input is converted).
+  DEFAULT_PYG_PER_USD: z.coerce.number().positive().default(7300),
+  // Per-IP request budget for public API endpoints (protect the free tier).
+  API_RATE_LIMIT_PER_MIN: z.coerce.number().positive().default(60),
 });
 
 export type Env = z.infer<typeof schema>;

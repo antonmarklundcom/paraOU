@@ -123,3 +123,12 @@ model SyncState {
   lastError String?
   updatedAt DateTime  @updatedAt
 }
+
+model ExchangeRate {
+  // Daily PYG-per-USD rate (docs/03). Amounts are stored in PYG; USD filter input is
+  // converted using the latest available rate. Populated by a small job later; until
+  // then the API falls back to env DEFAULT_PYG_PER_USD.
+  date      DateTime @id @db.Date
+  pygPerUsd Decimal  @db.Decimal(14, 4)
+  createdAt DateTime @default(now())
+}
