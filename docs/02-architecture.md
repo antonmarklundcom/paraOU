@@ -22,7 +22,7 @@
 | DB | **PostgreSQL 16** | JSONB for raw OCDS records, full-text search (Spanish config), `pgvector` for embeddings. Runs in Docker on the VPS. (MySQL on Hostinger shared is the fallback but loses pgvector + Spanish FTS quality — avoid.) |
 | ORM | **Prisma** | Schema-as-code, migrations, agent-friendly |
 | Ingestion | In-process worker via `node-cron` inside a small standalone `worker.ts` entry (same codebase, second process under systemd/Docker) | Keeps web latency isolated from sync jobs without adding infra |
-| AI | **Claude API** (`claude-sonnet-5` for matching/summaries, `claude-haiku-4-5` for cheap classification) + **Voyage AI `voyage-3.5`** for embeddings (multilingual, handles Spanish) | See docs/04 |
+| AI | **Google Gemini** (default: `gemini-2.5-flash-lite` judge, `gemini-2.5-flash` summaries, `gemini-embedding-001` embeddings) behind a provider abstraction; Anthropic Claude as optional drop-in for premium document analysis | Owner decision: cheapest capable provider, one vendor for LLM+embeddings. See docs/04 |
 | Auth | **Auth.js (NextAuth)** — email magic link + Google | Fast to ship |
 | Email | **Resend** (or SMTP via Hostinger) | Alerts + magic links |
 | Payments | **Stripe** first (works for USD cards); evaluate local rails (Bancard, Tigo Money) post-launch | See docs/06 risks |

@@ -19,23 +19,42 @@ Stage 3  LLM JUDGE         ~$0.001–01  Claude scores each surviving pair
 ```
 
 Volume math: ~50–150 new tenders/day × (say) 500 active profiles → stages 1+2 cut
-this to a few hundred LLM calls/day → a few dollars/day at Haiku prices, cents at
+this to a few hundred LLM calls/day → a few dollars/day at Flash-Lite prices, cents at
 low user counts. Costs scale with revenue (profiles), which is the right shape.
 
 ## Stage details
 
+## Provider decision: Google Gemini (default), pluggable
+
+**Owner decision (2026-07): use Google Gemini as the runtime AI provider** to
+minimize operating cost — one vendor covers both embeddings and LLM calls, with a
+free tier for development. Claude remains an optional drop-in for the premium
+document-analysis feature if quality comparisons justify it later.
+
+Implementation requirement: all AI calls go through a thin provider abstraction
+(`src/lib/ai/provider.ts`) exposing `embed()`, `judgeMatch()`, `summarize()`,
+`analyzeDocument()`. Provider selected via `AI_PROVIDER` env (`gemini` default,
+`anthropic` optional). **Verify current model ids in the provider's docs at build
+time — do not hardcode from this plan.** Indicative (mid-2026):
+
+| Job | Gemini (default) | Anthropic (optional) |
+|---|---|---|
+| Embeddings | `gemini-embedding-001` (set `outputDimensionality` via env, default 768) | Voyage `voyage-3.5` |
+| Match judge (high volume) | `gemini-2.5-flash-lite` | `claude-haiku-4-5` |
+| Tender summaries | `gemini-2.5-flash` | `claude-haiku-4-5` |
+| Document analysis (premium) | `gemini-2.5-pro` (or Gemini 3) | `claude-sonnet-5` |
+
+Note: embedding dimension is set once in env (`EMBEDDING_DIM`, pgvector column
+sized to match); switching dimension/provider later requires re-embedding — that's
+fine, embeddings are cheap and recomputable from `Tender.raw`.
+
 ### Embeddings (ingest-time)
-- Model: **Voyage `voyage-3.5`** (multilingual — handles Spanish well; Anthropic has
-  no embeddings API). Alternative if avoiding a second vendor: open-source
-  `multilingual-e5-large` self-hosted — but Voyage is simpler; cost is negligible.
 - Embed: `title + category + truncated description` per tender; for profiles embed
   `description + keywords + category names`. Re-embed profile on edit.
 
-### LLM judge (Claude)
-- Model: start with **`claude-haiku-4-5`** for scoring (cheap, fast); use
-  **`claude-sonnet-5`** for the user-facing tender summaries and the Business-tier
-  "bid-readiness" document analysis.
-- One call per (profile, tender) pair. Structured output (tool use / JSON schema):
+### LLM judge
+- One call per (profile, tender) pair. Structured output (JSON schema / function
+  calling — both providers support it):
 
 ```json
 {
@@ -52,7 +71,8 @@ low user counts. Costs scale with revenue (profiles), which is the right shape.
   the model to treat them as data, not instructions (prompt-injection hygiene).
 - Threshold: only store/show matches with score ≥ 50; alert on ≥ 70 (tune later).
 - Cache forever per (profile-version, tender-version) — never re-score unchanged
-  pairs. Batch API (50% discount) is fine here since matching is async.
+  pairs. Batch mode (both providers discount ~50%) is fine here since matching is
+  async.
 
 ### Feedback loop
 `Match.userAction` (SAVED / BIDDING / DISMISSED) is gold: use dismissals to auto-add
@@ -61,13 +81,15 @@ trains a proper ranking model.
 
 ## AI summaries (separate feature)
 - On tender detail page: one cached paragraph in plain Spanish ("Qué piden, cuánto,
-  para cuándo, qué necesitás para ofertar"), generated once per tender with Haiku at
-  ingest for OPEN tenders only. English on demand for the EN toggle.
+  para cuándo, qué necesitás para ofertar"), generated once per tender with the
+  cheap summary model at ingest for OPEN tenders only. English on demand for the EN
+  toggle.
 - Business tier: fetch the pliego PDFs (DNCP document links), extract text, and run
-  a `claude-sonnet-5` requirements-checklist analysis. This is Phase 6+, on demand
+  the premium document-analysis model. This is Phase 6+, on demand
   (user clicks "Analyze documents"), because PDFs are heavy.
 
 ## Cost guardrails (build these in Phase 4, not later)
 - Per-day token budget with a kill switch + admin alert.
 - Log every AI call: model, tokens, cost estimate, purpose → `ai_usage` table.
-- Prompt caching for the static system/rubric portion of the judge prompt.
+- Context/prompt caching for the static system/rubric portion of the judge prompt
+  (both providers support it).

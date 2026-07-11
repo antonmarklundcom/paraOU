@@ -28,7 +28,7 @@ model Tender {                    // one procurement process (OCDS record)
   sourceUrl     String?                   // canonical DNCP page
   raw           Json                      // full latest OCDS compiled release
   searchVector  Unsupported("tsvector")?  // spanish FTS over title+description+buyer
-  embedding     Unsupported("vector(1024)")?  // voyage-3.5
+  embedding     Unsupported("vector(768)")?   // dim = EMBEDDING_DIM (gemini-embedding-001)
   aiSummary     String?                   // cached one-paragraph plain-language summary
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
@@ -99,7 +99,7 @@ model CompanyProfile {            // what the user's company sells — input to 
   amountMin     Decimal?                  // contract size comfort range
   amountMax     Decimal?
   certifications String[]                 // ISO 9001, etc. (used by LLM reasoning)
-  embedding     Unsupported("vector(1024)")?
+  embedding     Unsupported("vector(768)")?   // dim = EMBEDDING_DIM
   matches       Match[]
   savedSearches SavedSearch[]
   alertChannel  AlertChannel @default(EMAIL)  // EMAIL | WHATSAPP(later) | NONE

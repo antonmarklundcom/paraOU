@@ -100,8 +100,9 @@ These require a human with a browser/inbox — the coding agent cannot do them:
 3. **Skim the terms of use** on the portal for attribution requirements and any
    resale restrictions (open-data portals almost always allow commercial reuse with
    attribution — confirm and note it in this file).
-4. **Anthropic API key** for the AI matching (console.anthropic.com) + a **Voyage AI
-   key** (or alternative) for embeddings — see docs/04.
+4. **Google Gemini API key** (aistudio.google.com) for AI matching, summaries and
+   embeddings — see docs/04. (Anthropic key only if the optional Claude provider is
+   enabled later.)
 5. **Hostinger**: confirm whether your Cloud plan supports a persistent Node.js
    process (see docs/02 — likely you'll want their VPS instead).
 6. Optional but smart: download one **bulk OCDS file** manually from the portal to

@@ -10,7 +10,7 @@ tenders. Full plan in `docs/`, build phases in `plan/`.
    before the previous phase's acceptance criteria pass. Within a phase, the doc is
    the spec; `docs/` explains the why.
 2. **Never commit secrets.** All credentials via `.env` (documented in
-   `.env.example`). The DNCP request token, Anthropic/Voyage/Stripe/Resend keys are
+   `.env.example`). The DNCP request token, Gemini/Stripe/Resend keys are
    owner-provided; if one is missing, build against fixtures/dev transports and say
    so clearly rather than blocking.
 3. **DNCP API discipline** (docs/01): access tokens live 15 min; hard rate limit
@@ -23,11 +23,12 @@ tenders. Full plan in `docs/`, build phases in `plan/`.
 5. **Spanish-first.** UI copy through the i18n dictionary (es default, en
    secondary); Postgres FTS uses the `spanish` config + `unaccent`; money as
    Decimal, formatted `es-PY`; timezone America/Asuncion.
-6. **AI calls** (docs/04): check the `claude-api` skill / current docs for model ids
-   before coding; wrap tender text as untrusted data in prompts; log every call to
-   `ai_usage`; respect the daily budget kill switch; cache — never re-score
-   unchanged (profile, tender) pairs; never call an LLM synchronously to render a
-   list.
+6. **AI calls** (docs/04): default provider is **Google Gemini** behind the
+   abstraction in `src/lib/ai/provider.ts` (owner decision — cost). Check current
+   model ids in live provider docs before coding; wrap tender text as untrusted
+   data in prompts; log every call to `ai_usage`; respect the daily budget kill
+   switch; cache — never re-score unchanged (profile, tender) pairs; never call an
+   LLM synchronously to render a list.
 7. **Testing**: Vitest units for mapping/limits/gating, integration tests against
    dockerized Postgres, Playwright e2e for the golden paths. CI must stay green.
 8. **Stack is fixed** (docs/02): Next.js 15 App Router, Prisma, Postgres 16 +

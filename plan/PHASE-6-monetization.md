@@ -23,7 +23,8 @@ Stripe dashboard by the owner (monthly + annual for PRO and BUSINESS).
    contract pays for years" anchor, testimonials placeholder.
 4. **Business-tier: AI document analysis** ("Analizar pliego"): fetch tender PDFs
    from DNCP links, extract text (pdf-parse; OCR out of scope v1 — show "scanned
-   document not supported yet"), `claude-sonnet-5` requirements checklist per
+   document not supported yet"), premium-model requirements checklist (docs/04
+   provider table: `gemini-2.5-pro` default, Claude optional) per
    docs/04; cache per document; count against a per-month quota (e.g. 30 analyses).
 5. **Admin `/admin`** (env-allowlisted emails): users/plans, sync health, AI spend,
    manual plan override, alert stats.

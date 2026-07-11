@@ -1,26 +1,31 @@
 # Phase 4 — Company profiles + AI matching
 
 **Goal:** the differentiator. Implement docs/04-ai-matching.md end to end.
-**Prereqs in `.env`:** `ANTHROPIC_API_KEY`, `VOYAGE_API_KEY`.
-Before writing AI code, consult the `claude-api` skill / current Anthropic docs for
-model ids and structured-output patterns — do not code from memory.
+**Prereqs in `.env`:** `GEMINI_API_KEY` (default provider; `ANTHROPIC_API_KEY`
+only if `AI_PROVIDER=anthropic`).
+Before writing AI code, verify current model ids and structured-output patterns in
+the provider's live docs — do not code from memory. Model choices per docs/04.
 
 ## Deliverables
 
-1. **`src/lib/ai/embeddings.ts`** — Voyage `voyage-3.5` wrapper (batch, retry);
-   worker job embeds new tenders at ingest; backfill command embeds existing OPEN
-   tenders first, then history lazily.
+0. **`src/lib/ai/provider.ts`** — provider abstraction per docs/04: `embed()`,
+   `judgeMatch()`, `summarize()`, `analyzeDocument()`; Gemini implementation is
+   required, Anthropic implementation may be a stub that throws "not configured".
+   `AI_PROVIDER`, `EMBEDDING_DIM` from env.
+1. **`src/lib/ai/embeddings.ts`** — `gemini-embedding-001` wrapper (batch, retry,
+   `outputDimensionality` = `EMBEDDING_DIM`); worker job embeds new tenders at
+   ingest; backfill command embeds existing OPEN tenders first, then history lazily.
 2. **Profile wizard `/perfil`** per docs/05 §4 (3 steps; category suggestions from
-   the free-text description via one Haiku call; instant 5 sample matches at the
-   end). Profiles persist for anonymous users in localStorage until Phase 5 auth,
-   then migrate.
+   the free-text description via one cheap-model call; instant 5 sample matches at
+   the end). Profiles persist for anonymous users in localStorage until Phase 5
+   auth, then migrate.
 3. **Match pipeline** (worker job, runs after each incremental sync):
    - Stage 1 SQL hard filters → Stage 2 pgvector top-30 per profile (blend FTS) →
-   - Stage 3 Claude judge (`claude-haiku-4-5`, tool-use JSON schema from docs/04,
-     tender text wrapped as untrusted data, prompt-cached rubric) → upsert `Match`.
-   - Only new/changed (profile-version × tender-version) pairs. Batch API where
+   - Stage 3 LLM judge (`gemini-2.5-flash-lite`, JSON schema from docs/04,
+     tender text wrapped as untrusted data, cached rubric) → upsert `Match`.
+   - Only new/changed (profile-version × tender-version) pairs. Batch mode where
      latency doesn't matter.
-4. **AI summaries**: Haiku one-paragraph "Resumen en simple" for OPEN tenders at
+4. **AI summaries**: one-paragraph "Resumen en simple" for OPEN tenders at
    ingest; render on detail page with the "Verificá en el pliego oficial"
    disclaimer + feedback button.
 5. **Feed UI**: match badge + expandable reasoning on rows (unflag the Phase 3
