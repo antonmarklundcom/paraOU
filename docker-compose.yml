@@ -1,0 +1,59 @@
+# Local + production compose (docs/02).
+#
+# Default (local dev):   docker compose up -d        → Postgres only.
+#                        then: npm run dev / npm run worker:dev on the host.
+# Full stack (prod-ish): docker compose --profile app up -d --build
+#
+# pgvector/pgvector:pg16 ships Postgres 16 with the `vector` extension; `unaccent`
+# and `pg_trgm` are bundled contrib modules. The init migration creates all three.
+
+services:
+  db:
+    image: pgvector/pgvector:pg16
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: paraou
+      POSTGRES_PASSWORD: paraou
+      POSTGRES_DB: paraou
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U paraou -d paraou"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  web:
+    profiles: ["app"]
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command: ["node_modules/.bin/next", "start", "-p", "3000"]
+    environment:
+      DATABASE_URL: postgresql://paraou:paraou@db:5432/paraou
+    env_file:
+      - .env
+    ports:
+      - "3000:3000"
+    depends_on:
+      db:
+        condition: service_healthy
+
+  worker:
+    profiles: ["app"]
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command: ["node_modules/.bin/tsx", "src/worker/worker.ts"]
+    environment:
+      DATABASE_URL: postgresql://paraou:paraou@db:5432/paraou
+    env_file:
+      - .env
+    depends_on:
+      db:
+        condition: service_healthy
+
+volumes:
+  pgdata:

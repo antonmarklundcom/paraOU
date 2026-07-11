@@ -8,8 +8,52 @@ actually win, ranked, with a plain-language explanation."
 
 ## Status
 
-📋 **Planning complete — ready to build.** This repo currently contains the full plan.
-Code is built phase by phase per `plan/`.
+🚧 **Phase 1 (ingestion) complete — running on fixtures.** The DNCP client, Postgres
+schema, sync worker, and backfill CLI are built and tested. Because the build
+environment could not reach `contrataciones.gov.py` (network policy — docs/06 risk
+T4) and no DNCP credentials were available, ingestion currently runs against
+synthetic OCDS fixtures. The live API paths/shapes still need verification — see
+[owner checklist](#before-phase-2-owner-must-verify) below. Phases 2–6 not started.
+
+| Phase | Status |
+|---|---|
+| 1 — Ingestion (client, DB, worker) | ✅ built & tested (fixtures mode) |
+| 2 — Internal API | ⬜ not started |
+| 3 — Frontend | ⬜ not started |
+| 4 — AI matching | ⬜ not started |
+| 5 — Accounts & alerts | ⬜ not started |
+| 6 — Monetization | ⬜ not started |
+
+### Running locally (Phase 1)
+
+```bash
+cp .env.example .env        # fill DNCP_* to use the live API; leave blank for fixtures
+docker compose up -d        # Postgres 16 + pgvector
+npm install
+npx prisma migrate deploy   # create schema (FTS + pgvector columns)
+npm run worker:dev          # cron worker: sync now + every 30 min (+ nightly reconcile)
+# one-off helpers:
+npm run sync:once                       # single incremental sync
+npm run backfill -- --year=2024 --file=records.jsonl   # bulk historical load (JSONL)
+npx prisma studio                       # browse ingested tenders
+curl localhost:3000/api/health          # ingestion health (run `npm run dev` first)
+```
+
+Without `DNCP_*` secrets the worker/backfill ingest the fixtures in
+`src/lib/dncp/__fixtures__/` so the pipeline is runnable end-to-end offline.
+
+### Before Phase 2 — owner must verify
+
+1. From the **production VPS**, confirm the DNCP API is reachable with your real
+   credentials in `.env` (proves docs/06 risk T4 is not a blocker there).
+2. Save the V3 OpenAPI/Swagger JSON to `docs/reference/dncp-v3-openapi.json`, then
+   reconcile `src/lib/dncp/ocds.ts` + `client.ts` + `source.ts` (shapes, endpoint
+   paths, pagination) against it and replace the synthetic fixtures with real ones.
+3. Run `npm run sync:once` against the live API and eyeball `npx prisma studio`.
+
+CI note: the migration gate uses `prisma migrate deploy` + `prisma migrate status`
+rather than a strict `prisma migrate diff --exit-code`, because Prisma cannot model
+the hand-written pgvector / generated-`tsvector` SQL and would report false drift.
 
 ## Read this first (order matters)
 

@@ -37,3 +37,23 @@
 actual production server, authenticate against the real API and pull 100 real
 tenders. Everything else in this plan survives contact with reality; these two must
 be proven on day one.
+
+## Phase 1 verification log
+
+**2026-07-11 — T4 confirmed in the build environment.** The Phase 1 build ran in a
+sandboxed CI environment whose egress proxy **denies `contrataciones.gov.py:443`**
+(`CONNECT` → 403). The live Swagger doc, the OAuth token endpoint, and the OCDS data
+endpoints were all unreachable, and no DNCP credentials were present. Per PHASE-1
+step 2 we therefore proceeded on **fixtures mode**: the ingestion pipeline, mapping,
+DB schema, and worker are all built and tested against synthetic OCDS 1.1 record
+packages in `src/lib/dncp/__fixtures__/`. The DNCP HTTP client (`src/lib/dncp/`) is
+fully implemented but its live endpoint **paths/params and response shapes remain
+UNVERIFIED** (see the `⚠️` notes in `client.ts`, `ocds.ts`, `source.ts`).
+
+**Still owned by a human (T1/T4 close-out) — must be done before/at Phase 2:**
+1. From the **production VPS (Paraguay/Brazil region)**, confirm the API is reachable
+   with real credentials in `.env` (prove T4 is not a blocker there).
+2. Save the V3 OpenAPI/Swagger JSON to `docs/reference/dncp-v3-openapi.json`.
+3. Replace the synthetic fixtures with 5–10 real record/release responses and adjust
+   the zod schemas / endpoint paths / mapping to match reality.
+4. Run `npm run sync:once` against the live API and eyeball `prisma studio`.
