@@ -1,5 +1,5 @@
-// ParaOU data model — Phase 1 (ingestion). See docs/03-data-model.md.
-// Later phases add User / CompanyProfile / Match / SavedSearch / billing models.
+// ParaOU data model — Phases 1 (ingestion) + 4 (profiles, AI matching).
+// See docs/03-data-model.md. Phase 5 adds User / SavedSearch / AlertLog; Phase 6 billing.
 //
 // Special columns managed by hand-written SQL in the migration (Prisma can't model
 // them): Tender.searchVector is a GENERATED tsvector (spanish + unaccent) with a GIN
@@ -51,6 +51,9 @@ model Tender {
   sourceUrl         String?
   raw               Json
   aiSummary         String?
+  // Bumped by ingest whenever match-relevant content changes; part of the
+  // (profileVersion, tenderVersion) cache key that prevents LLM re-scoring.
+  version           Int          @default(1)
 
   // Managed via raw migration SQL (see comment at top of file):
   searchVector Unsupported("tsvector")?
@@ -59,9 +62,10 @@ model Tender {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  buyer  Buyer?        @relation(fields: [buyerId], references: [id])
-  awards Award[]
-  events TenderEvent[]
+  buyer   Buyer?        @relation(fields: [buyerId], references: [id])
+  awards  Award[]
+  events  TenderEvent[]
+  matches Match[]
 
   @@index([status, deadlineAt])
   @@index([publishedAt])
@@ -122,6 +126,103 @@ model SyncState {
   status    String    @default("ok") // ok | running | error
   lastError String?
   updatedAt DateTime  @updatedAt
+}
+
+// ── Phase 4: profiles + AI matching ─────────────────────────────────
+
+enum MatchAction {
+  NONE
+  SAVED
+  BIDDING
+  DISMISSED
+}
+
+enum MatchVerdict {
+  STRONG
+  POSSIBLE
+  WEAK
+  NO
+}
+
+model CompanyProfile {
+  id          String @id @default(cuid())
+  // Anonymous access credential kept in the browser's localStorage until Phase 5
+  // auth migrates the profile to a User (docs/03). Never expose other profiles.
+  anonToken   String @unique @default(cuid())
+  userId      String? // linked in Phase 5
+  name        String
+  description String // free text: what the company does, in their words
+  categoryCodes   String[]
+  keywords        String[]
+  excludeKeywords String[]
+  departments     String[] // geo scope, empty = all
+  amountMin       Decimal? @db.Decimal(20, 4)
+  amountMax       Decimal? @db.Decimal(20, 4)
+  certifications  String[]
+  // Bumped on every match-relevant edit; cache key half (see Tender.version).
+  version         Int      @default(1)
+
+  // pgvector column managed by raw migration SQL, dim = EMBEDDING_DIM:
+  embedding Unsupported("vector(768)")?
+
+  matches   Match[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Match {
+  id         String       @id @default(cuid())
+  profileId  String
+  tenderId   String
+  score      Int // 0-100
+  verdict    MatchVerdict
+  fitReasons String[] // LLM explanation, user locale (docs/04 schema)
+  cautions   String[] // requirements that may disqualify
+  // The (profile, tender) content versions this score was computed for. A pair is
+  // re-sent to the LLM only when one of these no longer matches the live rows.
+  profileVersion Int
+  tenderVersion  Int
+  userAction     MatchAction @default(NONE) // north-star metric
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt
+
+  profile CompanyProfile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  tender  Tender         @relation(fields: [tenderId], references: [id], onDelete: Cascade)
+
+  @@unique([profileId, tenderId])
+  @@index([profileId, score])
+  @@index([tenderId])
+}
+
+// Every AI call is logged here (docs/04 cost guardrails). The daily budget kill
+// switch sums estCostUsd for the current America/Asuncion day.
+model AiUsage {
+  id           String   @id @default(cuid())
+  provider     String // gemini | anthropic
+  model        String
+  purpose      String // embed | judge | summarize | suggest_categories | analyze_document
+  inputTokens  Int      @default(0)
+  outputTokens Int      @default(0)
+  estCostUsd   Decimal  @db.Decimal(12, 8)
+  meta         Json?
+  createdAt    DateTime @default(now())
+
+  @@index([createdAt])
+  @@index([purpose, createdAt])
+}
+
+// Thumbs up/down on AI output (summary quality, match reasoning) — docs/04
+// feedback loop. Kept free-form; analyzed on /admin/ai.
+model AiFeedback {
+  id        String   @id @default(cuid())
+  subject   String // summary | match
+  tenderId  String?
+  profileId String?
+  helpful   Boolean
+  comment   String?
+  createdAt DateTime @default(now())
+
+  @@index([subject, createdAt])
 }
 
 model ExchangeRate {
