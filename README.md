@@ -18,7 +18,7 @@ internal search/filter/sort REST API the frontend will consume.
 |---|---|
 | 1 — Ingestion (client, DB, worker) | ✅ built & tested (fixtures mode) |
 | 2 — Internal API (search/filter/sort) | ✅ built & tested |
-| 3 — Frontend | ⬜ not started |
+| 3 — Frontend (overview, detail, SEO) | ✅ built & tested |
 | 4 — AI matching | ⬜ not started |
 | 5 — Accounts & alerts | ⬜ not started |
 | 6 — Monetization | ⬜ not started |
@@ -40,6 +40,23 @@ envelope `{ ok, data }` / `{ ok, error }`):
 Pagination is keyset (seek) on `(sortValue, ocid)` — stable under concurrent inserts —
 backed by expression indexes matching each sort (verified index-backed via
 `EXPLAIN ANALYZE`).
+
+### Frontend (Phase 3)
+
+Spanish-first public UI (docs/05), SSR for SEO, light + dark, responsive to 360px:
+
+| Route | What |
+|---|---|
+| `/` | Landing: value prop, live counters (open tenders / value in play), top categories. |
+| `/licitaciones` | Overview: URL-serialized filter rail (works with JS disabled), sort, active-filter chips, SSR first page + client "load more". |
+| `/licitaciones/[ocid]` | Detail: countdown hero, key-facts grid, timeline, awards, buyer-history teaser, DNCP document links, `.ics` download, follow/bid/dismiss (localStorage until Phase 5), JSON-LD. |
+| `/compradores/[id]` · `/proveedores/[id]` | Buyer/supplier profiles + aggregates. |
+| `/sitemap.xml` · `/robots.txt` | SEO. |
+
+Money formatted `es-PY` (compact "Gs. 4,5 mil M"), dates in `America/Asuncion`
+(fixed timezone — no UTC leakage). Run `npm run e2e` for the Playwright golden path
+(browse → filter → detail → download .ics). The AI match badge renders behind
+`NEXT_PUBLIC_SHOW_MATCH_BADGE=1` with mock data (real matching is Phase 4).
 
 ### Running locally (Phase 1)
 
