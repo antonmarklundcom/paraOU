@@ -1,0 +1,125 @@
+// ParaOU data model — Phase 1 (ingestion). See docs/03-data-model.md.
+// Later phases add User / CompanyProfile / Match / SavedSearch / billing models.
+//
+// Special columns managed by hand-written SQL in the migration (Prisma can't model
+// them): Tender.searchVector is a GENERATED tsvector (spanish + unaccent) with a GIN
+// index; Tender.embedding is a pgvector column with an HNSW cosine index (populated
+// in Phase 4). They are declared here as Unsupported(...) so the client is aware of
+// them and migrate diff stays consistent.
+
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["postgresqlExtensions"]
+}
+
+datasource db {
+  provider   = "postgresql"
+  url        = env("DATABASE_URL")
+  extensions = [vector, unaccent, pg_trgm]
+}
+
+enum TenderStatus {
+  PLANNED
+  OPEN
+  CLOSED
+  AWARDED
+  CONTRACTED
+  CANCELLED
+  UNSUCCESSFUL
+}
+
+model Tender {
+  id                String       @id @default(cuid())
+  ocid              String       @unique
+  dncpId            String?
+  title             String
+  description       String?
+  status            TenderStatus
+  buyerId           String?
+  buyerName         String? // denormalized for FTS + list display
+  categoryCode      String?
+  categoryName      String?
+  procurementMethod String?
+  amountMin         Decimal?     @db.Decimal(20, 4)
+  amountMax         Decimal?     @db.Decimal(20, 4)
+  currency          String       @default("PYG")
+  department        String?
+  publishedAt       DateTime?
+  deadlineAt        DateTime?
+  inquiryDeadlineAt DateTime?
+  documentsUrl      String?
+  sourceUrl         String?
+  raw               Json
+  aiSummary         String?
+
+  // Managed via raw migration SQL (see comment at top of file):
+  searchVector Unsupported("tsvector")?
+  embedding    Unsupported("vector(768)")?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  buyer  Buyer?        @relation(fields: [buyerId], references: [id])
+  awards Award[]
+  events TenderEvent[]
+
+  @@index([status, deadlineAt])
+  @@index([publishedAt])
+  @@index([categoryCode])
+  @@index([buyerId])
+}
+
+model Buyer {
+  id      String   @id // OCDS party id
+  name    String
+  ruc     String?
+  level   String?
+  tenders Tender[]
+}
+
+model Supplier {
+  id     String  @id // OCDS party id
+  name   String
+  ruc    String?
+  awards Award[]
+}
+
+model Award {
+  id         String    @id // OCDS award id, namespaced by ocid to stay globally unique
+  tenderId   String
+  supplierId String?
+  amount     Decimal?  @db.Decimal(20, 4)
+  currency   String?
+  date       DateTime?
+  status     String?
+
+  tender   Tender    @relation(fields: [tenderId], references: [id], onDelete: Cascade)
+  supplier Supplier? @relation(fields: [supplierId], references: [id])
+
+  @@index([tenderId])
+  @@index([supplierId])
+}
+
+model TenderEvent {
+  id        String   @id @default(cuid())
+  tenderId  String
+  type      String // NEW | STATUS_CHANGE | DEADLINE_CHANGE | AMOUNT_CHANGE
+  field     String?
+  oldValue  String?
+  newValue  String?
+  createdAt DateTime @default(now())
+
+  tender Tender @relation(fields: [tenderId], references: [id], onDelete: Cascade)
+
+  @@index([tenderId, createdAt])
+}
+
+model SyncState {
+  job       String    @id // "ocds_incremental" | "reconcile" | "backfill_2024" | ...
+  lastRunAt DateTime?
+  watermark DateTime? // last successfully covered publication date
+  cursor    String? // page/offset for resuming an interrupted run
+  status    String    @default("ok") // ok | running | error
+  lastError String?
+  updatedAt DateTime  @updatedAt
+}
