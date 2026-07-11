@@ -27,7 +27,15 @@ from V3. Ignore V1 entirely.
 
 ## Authentication flow (OAuth-ish, token exchange)
 
-1. `POST /oauth/token` with header `Authorization: Basic [request_token]`
+> ✅ **Confirmed from the owner's live portal account** (application already
+> created): the token endpoints are **unversioned** —
+> `https://contrataciones.gov.py/datos/api/oauth/token` and
+> `.../oauth/invalidate_token`. Use these exact URLs (see `.env.example`:
+> `DNCP_TOKEN_URL`, `DNCP_INVALIDATE_URL`); only the data endpoints live under
+> `/datos/api/v3/`. Credentials go in `.env` (`DNCP_CONSUMER_KEY`,
+> `DNCP_CONSUMER_SECRET`, `DNCP_REQUEST_TOKEN`).
+
+1. `POST {DNCP_TOKEN_URL}` with header `Authorization: Basic [request_token]`
    → returns an `access_token`.
 2. **Access token lives 15 minutes.** After expiry, request a new one.
 3. All data calls: header `Authorization: Bearer [access_token]`.
