@@ -24,10 +24,12 @@ structure with `en` stubs.
    (server renders must not leak UTC dates); responsive — cards on mobile.
 
 ## Non-goals in this phase
+
 No auth, no AI badges (render the match-badge component behind a feature flag with
 mock data so layout is proven), no payments.
 
 ## Acceptance criteria
+
 - Lighthouse ≥ 90 performance/SEO/accessibility on `/licitaciones` and detail page.
 - Every docs/05 filter works end-to-end against real ingested data; filter state
   survives reload/share via URL.

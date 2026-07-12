@@ -62,10 +62,7 @@ export interface JudgeTenderInput {
   department?: string | null;
 }
 
-export function buildJudgeUserPrompt(
-  profile: JudgeProfileInput,
-  tender: JudgeTenderInput,
-): string {
+export function buildJudgeUserPrompt(profile: JudgeProfileInput, tender: JudgeTenderInput): string {
   const profileBlock = [
     `Empresa: ${profile.name}`,
     `Qué hace: ${profile.description}`,
@@ -78,9 +75,7 @@ export function buildJudgeUserPrompt(
     profile.amountMin || profile.amountMax
       ? `Rango de contrato cómodo: ${profile.amountMin ?? "?"} – ${profile.amountMax ?? "?"} PYG`
       : null,
-    profile.certifications.length
-      ? `Certificaciones: ${profile.certifications.join(", ")}`
-      : null,
+    profile.certifications.length ? `Certificaciones: ${profile.certifications.join(", ")}` : null,
   ]
     .filter(Boolean)
     .join("\n");

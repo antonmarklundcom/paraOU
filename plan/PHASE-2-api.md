@@ -24,6 +24,7 @@ consumes. Next.js route handlers under `/api/*` (no separate server).
 5. `GET /api/health` (from Phase 1) extended with row counts.
 
 ## Requirements
+
 - All handlers: zod input validation, consistent error envelope, no N+1 (use
   Prisma `include`/raw SQL where aggregates need it).
 - Performance target: `GET /api/tenders` p95 < 300 ms on 1M rows — verify indexes
@@ -33,6 +34,7 @@ consumes. Next.js route handlers under `/api/*` (no separate server).
 - Integration tests with a seeded test DB (docker) covering each filter and sort.
 
 ## Acceptance criteria
+
 - Every filter in docs/05 §1 is expressible and tested.
 - Cursor pagination is stable under concurrent inserts.
 - `q=insumos medicos` (no accents) finds "insumos médicos".

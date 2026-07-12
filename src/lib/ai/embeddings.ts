@@ -63,8 +63,9 @@ export async function embedMissingTenders(opts?: { limit?: number }): Promise<nu
 
     const vectors = await provider.embed(tenders.map(buildTenderEmbeddingText), "document");
     await prisma.$transaction(
-      tenders.map((t, i) =>
-        prisma.$executeRaw`
+      tenders.map(
+        (t, i) =>
+          prisma.$executeRaw`
           UPDATE "Tender" SET embedding = ${toVectorLiteral(vectors[i] ?? [])}::vector
           WHERE id = ${t.id}
         `,

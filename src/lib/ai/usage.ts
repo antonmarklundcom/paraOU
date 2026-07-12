@@ -10,12 +10,7 @@ import { estimateCostUsd } from "./pricing.js";
  * summaries) and pause when it trips.
  */
 
-export type AiPurpose =
-  | "embed"
-  | "judge"
-  | "summarize"
-  | "suggest_categories"
-  | "analyze_document";
+export type AiPurpose = "embed" | "judge" | "summarize" | "suggest_categories" | "analyze_document";
 
 export async function logAiUsage(entry: {
   provider: string;

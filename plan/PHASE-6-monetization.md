@@ -39,6 +39,7 @@ Stripe dashboard by the owner (monthly + annual for PRO and BUSINESS).
    - Backfill full history, verify counts against DNCP portal spot checks.
 
 ## Acceptance criteria
+
 - Stripe test-mode: subscribe → plan flips → gated features unlock; cancel →
   downgrade at period end; webhook signature verified; all covered by tests using
   Stripe CLI fixtures.

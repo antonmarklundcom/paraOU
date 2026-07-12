@@ -11,6 +11,7 @@ plan/PHASE-1-ingestion.md. Implement Phase 1 exactly as specified in that phase
 doc — it is the spec; the docs/ folder explains the reasoning.
 
 Context you need:
+
 - My DNCP API credentials are already in `.env` (never commit it; keep
   `.env.example` in sync when you add variables).
 - If the DNCP API is unreachable from this environment, follow the fixtures

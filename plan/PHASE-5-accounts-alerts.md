@@ -28,6 +28,7 @@ creds (optional).
    account (GDPR-style full wipe — cheap now, painful later).
 
 ## Acceptance criteria
+
 - New user: signup via magic link < 60 s; anonymous profile carried over.
 - Seed a new matching tender → next digest run emails exactly one alert; re-running
   sends nothing (AlertLog dedupe test).

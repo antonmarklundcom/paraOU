@@ -266,9 +266,7 @@ export function PerfilWizard({
               <button
                 key={d.value}
                 type="button"
-                onClick={() =>
-                  setForm({ ...form, departments: toggle(form.departments, d.value) })
-                }
+                onClick={() => setForm({ ...form, departments: toggle(form.departments, d.value) })}
                 className={cn(
                   "rounded-full border px-3 py-1.5 text-xs",
                   form.departments.includes(d.value)
@@ -345,7 +343,9 @@ export function PerfilWizard({
             <p className="mt-2 text-sm text-muted-foreground">{t.sampleEmpty}</p>
           )}
           <div className="mt-4 space-y-3">
-            {sample?.map((m) => <MatchCard key={m.tenderId} item={m} readOnly />)}
+            {sample?.map((m) => (
+              <MatchCard key={m.tenderId} item={m} readOnly />
+            ))}
           </div>
           <div className="mt-6">
             <Link href="/panel" className={primaryBtn}>

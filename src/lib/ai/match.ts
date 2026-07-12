@@ -58,9 +58,7 @@ export async function findCandidates(
   ];
   if (profile.departments.length > 0) {
     // Tenders without a department stay in — the judge weighs geography.
-    conds.push(
-      Prisma.sql`(t.department IS NULL OR t.department = ANY(${profile.departments}))`,
-    );
+    conds.push(Prisma.sql`(t.department IS NULL OR t.department = ANY(${profile.departments}))`);
   }
   if (profile.amountMin !== null) {
     conds.push(Prisma.sql`(t."amountMax" IS NULL OR t."amountMax" >= ${profile.amountMin})`);
