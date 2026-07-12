@@ -26,7 +26,10 @@
             "identifier": { "scheme": "PY-RUC", "id": "80055512-4" }
           }
         ],
-        "buyer": { "id": "PY-RUC-80016909", "name": "Ministerio de Salud Pública y Bienestar Social" },
+        "buyer": {
+          "id": "PY-RUC-80016909",
+          "name": "Ministerio de Salud Pública y Bienestar Social"
+        },
         "tender": {
           "id": "390111",
           "title": "Adquisición de Insumos Médicos para Hospitales Regionales",
@@ -37,13 +40,23 @@
           "mainProcurementCategory": "goods",
           "value": { "amount": 4500000000, "currency": "PYG" },
           "minValue": { "amount": 4000000000, "currency": "PYG" },
-          "tenderPeriod": { "startDate": "2024-03-10T08:00:00Z", "endDate": "2024-04-12T11:00:00Z" },
+          "tenderPeriod": {
+            "startDate": "2024-03-10T08:00:00Z",
+            "endDate": "2024-04-12T11:00:00Z"
+          },
           "enquiryPeriod": { "endDate": "2024-03-25T11:00:00Z" },
-          "procuringEntity": { "id": "PY-RUC-80016909", "name": "Ministerio de Salud Pública y Bienestar Social" },
+          "procuringEntity": {
+            "id": "PY-RUC-80016909",
+            "name": "Ministerio de Salud Pública y Bienestar Social"
+          },
           "items": [
             {
               "id": "1",
-              "classification": { "scheme": "UNSPSC", "id": "42142523", "description": "Jeringas hipodérmicas" }
+              "classification": {
+                "scheme": "UNSPSC",
+                "id": "42142523",
+                "description": "Jeringas hipodérmicas"
+              }
             }
           ],
           "documents": [
@@ -60,7 +73,9 @@
             "status": "active",
             "date": "2024-04-15T16:00:00Z",
             "value": { "amount": 4380000000, "currency": "PYG" },
-            "suppliers": [{ "id": "PY-RUC-80055512", "name": "Insumos Hospitalarios del Paraguay S.R.L." }]
+            "suppliers": [
+              { "id": "PY-RUC-80055512", "name": "Insumos Hospitalarios del Paraguay S.R.L." }
+            ]
           }
         ]
       }

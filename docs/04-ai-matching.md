@@ -37,22 +37,24 @@ Implementation requirement: all AI calls go through a thin provider abstraction
 `anthropic` optional). **Verify current model ids in the provider's docs at build
 time — do not hardcode from this plan.** Indicative (mid-2026):
 
-| Job | Gemini (default) | Anthropic (optional) |
-|---|---|---|
-| Embeddings | `gemini-embedding-001` (set `outputDimensionality` via env, default 768) | Voyage `voyage-3.5` |
-| Match judge (high volume) | `gemini-2.5-flash-lite` | `claude-haiku-4-5` |
-| Tender summaries | `gemini-2.5-flash` | `claude-haiku-4-5` |
-| Document analysis (premium) | `gemini-2.5-pro` (or Gemini 3) | `claude-sonnet-5` |
+| Job                         | Gemini (default)                                                         | Anthropic (optional) |
+| --------------------------- | ------------------------------------------------------------------------ | -------------------- |
+| Embeddings                  | `gemini-embedding-001` (set `outputDimensionality` via env, default 768) | Voyage `voyage-3.5`  |
+| Match judge (high volume)   | `gemini-2.5-flash-lite`                                                  | `claude-haiku-4-5`   |
+| Tender summaries            | `gemini-2.5-flash`                                                       | `claude-haiku-4-5`   |
+| Document analysis (premium) | `gemini-2.5-pro` (or Gemini 3)                                           | `claude-sonnet-5`    |
 
 Note: embedding dimension is set once in env (`EMBEDDING_DIM`, pgvector column
 sized to match); switching dimension/provider later requires re-embedding — that's
 fine, embeddings are cheap and recomputable from `Tender.raw`.
 
 ### Embeddings (ingest-time)
+
 - Embed: `title + category + truncated description` per tender; for profiles embed
   `description + keywords + category names`. Re-embed profile on edit.
 
 ### LLM judge
+
 - One call per (profile, tender) pair. Structured output (JSON schema / function
   calling — both providers support it):
 
@@ -75,11 +77,13 @@ fine, embeddings are cheap and recomputable from `Tender.raw`.
   async.
 
 ### Feedback loop
+
 `Match.userAction` (SAVED / BIDDING / DISMISSED) is gold: use dismissals to auto-add
 exclude patterns (suggest, don't silently apply) and to tune thresholds. Later this
 trains a proper ranking model.
 
 ## AI summaries (separate feature)
+
 - On tender detail page: one cached paragraph in plain Spanish ("Qué piden, cuánto,
   para cuándo, qué necesitás para ofertar"), generated once per tender with the
   cheap summary model at ingest for OPEN tenders only. English on demand for the EN
@@ -89,6 +93,7 @@ trains a proper ranking model.
   (user clicks "Analyze documents"), because PDFs are heavy.
 
 ## Cost guardrails (build these in Phase 4, not later)
+
 - Per-day token budget with a kill switch + admin alert.
 - Log every AI call: model, tokens, cost estimate, purpose → `ai_usage` table.
 - Context/prompt caching for the static system/rubric portion of the judge prompt

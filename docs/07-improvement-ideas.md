@@ -5,8 +5,8 @@ these block launch; revisit after Phase 6 with real user feedback.
 
 ## High impact, low-medium effort
 
-1. **PAC early-warning (planificaciones)** — DNCP publishes agencies' *annual
-   procurement plans* before tenders exist. "Ministerio de Salud plans to buy
+1. **PAC early-warning (planificaciones)** — DNCP publishes agencies' _annual
+   procurement plans_ before tenders exist. "Ministerio de Salud plans to buy
    ambulances in Q4" months in advance is intelligence nobody else surfaces well.
    Cheap to add (same API, same pipeline) and a strong Business-tier hook.
 2. **WhatsApp alerts** — the single most Paraguay-appropriate feature. Business

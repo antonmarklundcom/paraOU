@@ -4,6 +4,7 @@ import { prisma } from "../lib/db.js";
 import { logger } from "../lib/log.js";
 import { dncpConfigured } from "../lib/env.js";
 import { reconcileRecent, syncIncremental } from "./sync.js";
+import { runAiPass } from "./aiPass.js";
 
 /**
  * Ingestion worker entry (docs/02, PHASE-1 step 5): a single long-running process
@@ -44,18 +45,30 @@ async function start() {
     "ParaOU ingestion worker starting",
   );
 
+  // Sync then AI post-pass (Phase 4): embeddings → summaries → match funnel.
+  const syncThenAi = async () => {
+    await syncIncremental(prisma);
+    await runAiPass();
+  };
+
   // Run one incremental sync immediately on boot so a fresh deploy has data.
-  await guarded("startup-sync", () => syncIncremental(prisma));
+  await guarded("startup-sync", syncThenAi);
 
   // Every 30 minutes.
-  cron.schedule("*/30 * * * *", () => void guarded("incremental", () => syncIncremental(prisma)), {
+  cron.schedule("*/30 * * * *", () => void guarded("incremental", syncThenAi), {
     timezone: TZ,
   });
 
   // Nightly reconciliation at 03:15.
-  cron.schedule("15 3 * * *", () => void guarded("reconcile", () => reconcileRecent(prisma, 3)), {
-    timezone: TZ,
-  });
+  cron.schedule(
+    "15 3 * * *",
+    () =>
+      void guarded("reconcile", async () => {
+        await reconcileRecent(prisma, 3);
+        await runAiPass();
+      }),
+    { timezone: TZ },
+  );
 
   logger.info("cron schedules registered (incremental */30, reconcile 03:15)");
 }

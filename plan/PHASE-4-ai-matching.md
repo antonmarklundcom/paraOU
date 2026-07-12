@@ -36,6 +36,7 @@ the provider's live docs — do not code from memory. Model choices per docs/04.
    admin page `/admin/ai` (env-gated) showing spend and match quality samples.
 
 ## Acceptance criteria
+
 - Create a realistic profile ("empresa constructora en Itapúa, obras viales hasta
   Gs. 5.000 mill.") → feed shows plausibly relevant tenders ranked, each with
   Spanish reasoning and cautions; an obviously irrelevant tender (e.g. medical

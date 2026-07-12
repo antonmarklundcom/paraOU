@@ -103,7 +103,15 @@ export async function upsertTender(
 
     const existing = await tx.tender.findUnique({
       where: { ocid: m.ocid },
-      select: { id: true, status: true, deadlineAt: true, amountMax: true },
+      select: {
+        id: true,
+        status: true,
+        deadlineAt: true,
+        amountMax: true,
+        title: true,
+        description: true,
+        categoryName: true,
+      },
     });
 
     const data = {
@@ -136,7 +144,25 @@ export async function upsertTender(
       action = "updated";
       tenderId = existing.id;
       eventDrafts.push(...diffEvents(existing, m));
-      await tx.tender.update({ where: { id: existing.id }, data });
+      // Phase 4: text changes invalidate the embedding + AI summary (recomputed by
+      // the worker's AI pass); any match-relevant change bumps `version`, which
+      // makes the (profileVersion, tenderVersion) cache re-judge the pair.
+      const textChanged =
+        existing.title !== m.title ||
+        (existing.description ?? null) !== m.description ||
+        (existing.categoryName ?? null) !== m.categoryName;
+      const matchRelevantChange = textChanged || eventDrafts.length > 0;
+      await tx.tender.update({
+        where: { id: existing.id },
+        data: {
+          ...data,
+          ...(matchRelevantChange ? { version: { increment: 1 } } : {}),
+          ...(textChanged ? { aiSummary: null } : {}),
+        },
+      });
+      if (textChanged) {
+        await tx.$executeRaw`UPDATE "Tender" SET embedding = NULL WHERE id = ${existing.id}`;
+      }
     } else {
       action = "created";
       const created = await tx.tender.create({

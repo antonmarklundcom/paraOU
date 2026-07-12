@@ -8,34 +8,37 @@ actually win, ranked, with a plain-language explanation."
 
 ## Status
 
-🚧 **Phases 1–2 complete.** Phase 1: DNCP client, Postgres schema, sync worker,
+🚧 **Phases 1–4 complete.** Phase 1: DNCP client, Postgres schema, sync worker,
 backfill CLI (running on synthetic OCDS fixtures — the build environment couldn't
 reach `contrataciones.gov.py`, docs/06 risk T4; live API paths/shapes still need
 verification, see [owner checklist](#before-phase-2-owner-must-verify)). Phase 2: the
-internal search/filter/sort REST API the frontend will consume.
+internal search/filter/sort REST API. Phase 3: the Spanish-first public UI. Phase 4:
+company profiles + the 3-stage AI match funnel on Gemini (see
+[owner checklist](#before-phase-5--owner-must-verify) — live AI verification is
+pending a billing top-up).
 
-| Phase | Status |
-|---|---|
-| 1 — Ingestion (client, DB, worker) | ✅ built & tested (fixtures mode) |
-| 2 — Internal API (search/filter/sort) | ✅ built & tested |
-| 3 — Frontend (overview, detail, SEO) | ✅ built & tested |
-| 4 — AI matching | ⬜ not started |
-| 5 — Accounts & alerts | ⬜ not started |
-| 6 — Monetization | ⬜ not started |
+| Phase                                    | Status                                                                                |
+| ---------------------------------------- | ------------------------------------------------------------------------------------- |
+| 1 — Ingestion (client, DB, worker)       | ✅ built & tested (fixtures mode)                                                     |
+| 2 — Internal API (search/filter/sort)    | ✅ built & tested                                                                     |
+| 3 — Frontend (overview, detail, SEO)     | ✅ built & tested                                                                     |
+| 4 — AI matching (profiles, funnel, feed) | ✅ built & tested (recorded AI responses — live calls pending billing, see checklist) |
+| 5 — Accounts & alerts                    | ⬜ not started                                                                        |
+| 6 — Monetization                         | ⬜ not started                                                                        |
 
 ### API (Phase 2)
 
 Public, read-only JSON endpoints under `/api` (per-IP rate limited, zod-validated,
 envelope `{ ok, data }` / `{ ok, error }`):
 
-| Endpoint | Purpose |
-|---|---|
-| `GET /api/tenders` | Search/filter/sort feed. Params: `q` (Spanish accent-insensitive FTS), `status[]`, `category[]` (N5 prefix), `buyer`, `department[]`, `method[]`, `amountMin/Max` + `currency` (USD auto-converted), `publishedFrom/To`, `deadlineWithinDays`, `sort` (`newest`\|`deadline`\|`amount`\|`relevance`), keyset `cursor`, `limit`≤50. |
-| `GET /api/tenders/[ocid]` | Full detail: awards, buyer, timeline events, buyer-history teaser. |
-| `GET /api/buyers?query=` | Accent-insensitive buyer typeahead. |
-| `GET /api/buyers/[id]` · `GET /api/suppliers/[id]` | Profile + aggregates (cached 1h). |
-| `GET /api/meta/filters` | Filter option lists with counts (cached 1h). |
-| `GET /api/health` | Ingestion status + row counts. |
+| Endpoint                                           | Purpose                                                                                                                                                                                                                                                                                                                           |
+| -------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `GET /api/tenders`                                 | Search/filter/sort feed. Params: `q` (Spanish accent-insensitive FTS), `status[]`, `category[]` (N5 prefix), `buyer`, `department[]`, `method[]`, `amountMin/Max` + `currency` (USD auto-converted), `publishedFrom/To`, `deadlineWithinDays`, `sort` (`newest`\|`deadline`\|`amount`\|`relevance`), keyset `cursor`, `limit`≤50. |
+| `GET /api/tenders/[ocid]`                          | Full detail: awards, buyer, timeline events, buyer-history teaser.                                                                                                                                                                                                                                                                |
+| `GET /api/buyers?query=`                           | Accent-insensitive buyer typeahead.                                                                                                                                                                                                                                                                                               |
+| `GET /api/buyers/[id]` · `GET /api/suppliers/[id]` | Profile + aggregates (cached 1h).                                                                                                                                                                                                                                                                                                 |
+| `GET /api/meta/filters`                            | Filter option lists with counts (cached 1h).                                                                                                                                                                                                                                                                                      |
+| `GET /api/health`                                  | Ingestion status + row counts.                                                                                                                                                                                                                                                                                                    |
 
 Pagination is keyset (seek) on `(sortValue, ocid)` — stable under concurrent inserts —
 backed by expression indexes matching each sort (verified index-backed via
@@ -45,18 +48,37 @@ backed by expression indexes matching each sort (verified index-backed via
 
 Spanish-first public UI (docs/05), SSR for SEO, light + dark, responsive to 360px:
 
-| Route | What |
-|---|---|
-| `/` | Landing: value prop, live counters (open tenders / value in play), top categories. |
-| `/licitaciones` | Overview: URL-serialized filter rail (works with JS disabled), sort, active-filter chips, SSR first page + client "load more". |
-| `/licitaciones/[ocid]` | Detail: countdown hero, key-facts grid, timeline, awards, buyer-history teaser, DNCP document links, `.ics` download, follow/bid/dismiss (localStorage until Phase 5), JSON-LD. |
-| `/compradores/[id]` · `/proveedores/[id]` | Buyer/supplier profiles + aggregates. |
-| `/sitemap.xml` · `/robots.txt` | SEO. |
+| Route                                     | What                                                                                                                                                                            |
+| ----------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `/`                                       | Landing: value prop, live counters (open tenders / value in play), top categories.                                                                                              |
+| `/licitaciones`                           | Overview: URL-serialized filter rail (works with JS disabled), sort, active-filter chips, SSR first page + client "load more".                                                  |
+| `/licitaciones/[ocid]`                    | Detail: countdown hero, key-facts grid, timeline, awards, buyer-history teaser, DNCP document links, `.ics` download, follow/bid/dismiss (localStorage until Phase 5), JSON-LD. |
+| `/compradores/[id]` · `/proveedores/[id]` | Buyer/supplier profiles + aggregates.                                                                                                                                           |
+| `/sitemap.xml` · `/robots.txt`            | SEO.                                                                                                                                                                            |
 
 Money formatted `es-PY` (compact "Gs. 4,5 mil M"), dates in `America/Asuncion`
-(fixed timezone — no UTC leakage). Run `npm run e2e` for the Playwright golden path
-(browse → filter → detail → download .ics). The AI match badge renders behind
-`NEXT_PUBLIC_SHOW_MATCH_BADGE=1` with mock data (real matching is Phase 4).
+(fixed timezone — no UTC leakage). Run `npm run e2e` for the Playwright golden paths
+(browse → filter → detail → .ics; profile wizard → panel).
+
+### AI matching (Phase 4)
+
+Per docs/04: a 3-stage funnel so LLM cost scales with matches, not tenders.
+
+- **Provider abstraction** `src/lib/ai/provider.ts` — Gemini default
+  (`AI_PROVIDER=gemini`), Anthropic stub; model ids env-overridable
+  (`GEMINI_MODEL_*`). Every call logged to `ai_usage`; daily budget
+  (`AI_DAILY_BUDGET_USD`) trips a kill switch that pauses judging + summaries.
+- **Funnel** (worker job after each sync): SQL hard filters → pgvector cosine
+  top-30 blended with FTS keyword hits → `gemini-2.5-flash-lite` judge with a JSON
+  schema; tender text is wrapped as untrusted data (prompt-injection hygiene).
+  Judged pairs are cached per (profileVersion, tenderVersion) — unchanged pairs are
+  never re-sent to the LLM.
+- **Routes**: `/perfil` (3-step wizard, anonymous localStorage token until Phase 5,
+  instant 5 sample matches), `/panel` (feed grouped Nuevos / Cierran pronto /
+  Guardados with save/bid/dismiss → `Match.userAction`), AI summary card on tender
+  detail, `/admin/ai?key=$ADMIN_KEY` (spend, kill-switch state, quality samples).
+- **CLIs**: `npm run embed:backfill` (OPEN tenders first), `npm run ai:smoke`
+  (live provider check incl. a prompt-injection probe).
 
 ### Running locally (Phase 1)
 
@@ -85,22 +107,37 @@ Without `DNCP_*` secrets the worker/backfill ingest the fixtures in
    paths, pagination) against it and replace the synthetic fixtures with real ones.
 3. Run `npm run sync:once` against the live API and eyeball `npx prisma studio`.
 
+### Before Phase 5 — owner must verify
+
+1. **Top up Gemini billing.** The build environment reached the live API but every
+   generate/embed call returned 429 `RESOURCE_EXHAUSTED` ("prepayment credits
+   depleted") — manage billing at https://ai.studio/projects, then run
+   `npm run ai:smoke` and confirm: embed ok, the irrelevant medical tender scores
+   < 50 despite the embedded injection attempt, and a sane Spanish summary.
+2. With credits in place: `npm run embed:backfill`, create a profile at `/perfil`,
+   and eyeball ranked matches + costs on `/admin/ai?key=$ADMIN_KEY`
+   (set `ADMIN_KEY` in `.env`). One profile × one day should cost < $0.05.
+3. Verify current Gemini **pricing** against `src/lib/ai/pricing.ts` (the sandbox
+   proxy blocked ai.google.dev, so the cost table is a mid-2026 estimate).
+4. Still open from Phase 1: DNCP reachability from the production VPS (item list
+   above) — matching runs on synthetic fixtures until real tenders flow.
+
 CI note: the migration gate uses `prisma migrate deploy` + `prisma migrate status`
 rather than a strict `prisma migrate diff --exit-code`, because Prisma cannot model
 the hand-written pgvector / generated-`tsvector` SQL and would report false drift.
 
 ## Read this first (order matters)
 
-| Doc | What it covers |
-|---|---|
-| [docs/00-vision.md](docs/00-vision.md) | Product vision, target users, business model, revenue ideas |
-| [docs/01-dncp-api.md](docs/01-dncp-api.md) | The DNCP API v3: auth, endpoints, rate limits, what's free, what you must register for |
-| [docs/02-architecture.md](docs/02-architecture.md) | System architecture (Node.js), hosting on Hostinger, deployment |
-| [docs/03-data-model.md](docs/03-data-model.md) | Database schema |
-| [docs/04-ai-matching.md](docs/04-ai-matching.md) | How AI matching works (filters → embeddings → LLM scoring) |
-| [docs/05-ux-ui.md](docs/05-ux-ui.md) | UX/UI specification for the tender overview and detail pages |
-| [docs/06-risks.md](docs/06-risks.md) | Known issues, risks, and mitigations |
-| [docs/07-improvement-ideas.md](docs/07-improvement-ideas.md) | Post-launch roadmap and feature ideas |
+| Doc                                                          | What it covers                                                                         |
+| ------------------------------------------------------------ | -------------------------------------------------------------------------------------- |
+| [docs/00-vision.md](docs/00-vision.md)                       | Product vision, target users, business model, revenue ideas                            |
+| [docs/01-dncp-api.md](docs/01-dncp-api.md)                   | The DNCP API v3: auth, endpoints, rate limits, what's free, what you must register for |
+| [docs/02-architecture.md](docs/02-architecture.md)           | System architecture (Node.js), hosting on Hostinger, deployment                        |
+| [docs/03-data-model.md](docs/03-data-model.md)               | Database schema                                                                        |
+| [docs/04-ai-matching.md](docs/04-ai-matching.md)             | How AI matching works (filters → embeddings → LLM scoring)                             |
+| [docs/05-ux-ui.md](docs/05-ux-ui.md)                         | UX/UI specification for the tender overview and detail pages                           |
+| [docs/06-risks.md](docs/06-risks.md)                         | Known issues, risks, and mitigations                                                   |
+| [docs/07-improvement-ideas.md](docs/07-improvement-ideas.md) | Post-launch roadmap and feature ideas                                                  |
 
 ## Build phases (for the coding agent)
 

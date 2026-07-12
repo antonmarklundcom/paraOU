@@ -42,6 +42,7 @@ from V3. Ignore V1 entirely.
 4. Optional `POST /oauth/invalidate_token` to kill a token early.
 
 Client implementation requirements:
+
 - Auto-refresh: on 401 (or proactively at ~13 min), fetch a new access token.
 - Global rate limiter: token-bucket, stay well under 5,000/15 min (e.g. cap at
   4 req/s sustained, 3,000/15 min budget) — if the limit is hit, DNCP blocks until
@@ -50,22 +51,23 @@ Client implementation requirements:
 
 ## Endpoint groups (V3 mirrors V2's structure)
 
-| Group | What it is | Our use |
-|---|---|---|
-| `convocatorias` | **Tender notices (the "jobs")** — open calls for bids | Core. This is the feed. |
-| `planificaciones` | Procurement plans (PACs) — what agencies *intend* to buy this year | Premium feature: early signals before the tender exists |
-| `adjudicaciones` | Awards — who won, amounts | Competitor intelligence |
-| `contratos` | Signed contracts | Intelligence + market sizing |
-| `modificaciones-contrato` | Contract amendments | Nice-to-have analytics |
-| `buscadores` | Search services | Useful for incremental sync (search by date range) |
-| `parametros`, `catalogos` | Reference data: entities, categories, geo, catalog codes | Needed for filters. Paraguay uses the **Catálogo de Bienes y Servicios (N5, UNSPSC-based)** — this is our category taxonomy |
-| `proveedores` | Supplier registry | Enrich competitor profiles |
-| `ocds` | **Open Contracting Data Standard releases/records** | **Preferred ingestion format** — standardized JSON, one schema for the whole lifecycle |
+| Group                     | What it is                                                         | Our use                                                                                                                     |
+| ------------------------- | ------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------- |
+| `convocatorias`           | **Tender notices (the "jobs")** — open calls for bids              | Core. This is the feed.                                                                                                     |
+| `planificaciones`         | Procurement plans (PACs) — what agencies _intend_ to buy this year | Premium feature: early signals before the tender exists                                                                     |
+| `adjudicaciones`          | Awards — who won, amounts                                          | Competitor intelligence                                                                                                     |
+| `contratos`               | Signed contracts                                                   | Intelligence + market sizing                                                                                                |
+| `modificaciones-contrato` | Contract amendments                                                | Nice-to-have analytics                                                                                                      |
+| `buscadores`              | Search services                                                    | Useful for incremental sync (search by date range)                                                                          |
+| `parametros`, `catalogos` | Reference data: entities, categories, geo, catalog codes           | Needed for filters. Paraguay uses the **Catálogo de Bienes y Servicios (N5, UNSPSC-based)** — this is our category taxonomy |
+| `proveedores`             | Supplier registry                                                  | Enrich competitor profiles                                                                                                  |
+| `ocds`                    | **Open Contracting Data Standard releases/records**                | **Preferred ingestion format** — standardized JSON, one schema for the whole lifecycle                                      |
 
 ## Recommended ingestion strategy
 
 **Ingest via the OCDS endpoints** (`releases`/`record` packages) rather than the
 bespoke endpoints, because:
+
 1. OCDS is a stable, documented schema (https://standard.open-contracting.org) —
    `tender`, `awards`, `contracts`, `parties`, `planning` in one record keyed by
    `ocid` (DNCP prefix: `ocds-03ad3f`).

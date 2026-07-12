@@ -30,6 +30,9 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
               <Link href="/licitaciones" className="hover:text-primary">
                 {t.nav.tenders}
               </Link>
+              <Link href="/panel" className="hover:text-primary">
+                {t.nav.panel}
+              </Link>
               <ThemeToggle />
             </nav>
           </div>

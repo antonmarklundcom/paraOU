@@ -1,11 +1,13 @@
 # CLAUDE.md — instructions for coding agents in this repo
 
 ## What this project is
+
 ParaOU: a Node.js/TypeScript SaaS that ingests Paraguay's public procurement data
 (DNCP API v3 / OCDS), and gives businesses a filterable overview + AI matching of
 tenders. Full plan in `docs/`, build phases in `plan/`.
 
 ## How to work here
+
 1. **Follow the phases in order** (`plan/PHASE-1` … `PHASE-6`). Don't start a phase
    before the previous phase's acceptance criteria pass. Within a phase, the doc is
    the spec; `docs/` explains the why.
@@ -36,6 +38,7 @@ tenders. Full plan in `docs/`, build phases in `plan/`.
    Resend. Don't introduce Redis/queues/microservices without owner sign-off.
 
 ## Commands (once scaffolded)
+
 - `docker compose up -d` — Postgres (pgvector)
 - `npm run dev` — web; `npm run worker:dev` — sync worker
 - `npm run backfill -- --year=YYYY` — bulk historical ingest
@@ -43,9 +46,10 @@ tenders. Full plan in `docs/`, build phases in `plan/`.
 - `npm test` / `npm run e2e`
 
 ## Known unknowns (check before relying on them)
+
 - V3 endpoint shapes were planned from V2 docs — verify against live Swagger and
   save the spec to `docs/reference/` (Phase 1, step 2).
 - contrataciones.gov.py may block datacenter IPs (risk T4 in docs/06) — prove
   reachability from the production VPS early.
-- Owner's Hostinger *Cloud* plan likely can't run persistent Node — target is
+- Owner's Hostinger _Cloud_ plan likely can't run persistent Node — target is
   Hostinger VPS with Docker (docs/02).

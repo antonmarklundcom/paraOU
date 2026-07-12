@@ -23,7 +23,10 @@
             "address": { "region": "Central", "locality": "Asunción", "countryName": "Paraguay" }
           }
         ],
-        "buyer": { "id": "PY-RUC-80016909", "name": "Ministerio de Salud Pública y Bienestar Social" },
+        "buyer": {
+          "id": "PY-RUC-80016909",
+          "name": "Ministerio de Salud Pública y Bienestar Social"
+        },
         "tender": {
           "id": "390111",
           "title": "Adquisición de Insumos Médicos para Hospitales Regionales",
@@ -34,13 +37,23 @@
           "mainProcurementCategory": "goods",
           "value": { "amount": 4500000000, "currency": "PYG" },
           "minValue": { "amount": 4000000000, "currency": "PYG" },
-          "tenderPeriod": { "startDate": "2024-03-10T08:00:00Z", "endDate": "2024-04-05T11:00:00Z" },
+          "tenderPeriod": {
+            "startDate": "2024-03-10T08:00:00Z",
+            "endDate": "2024-04-05T11:00:00Z"
+          },
           "enquiryPeriod": { "endDate": "2024-03-25T11:00:00Z" },
-          "procuringEntity": { "id": "PY-RUC-80016909", "name": "Ministerio de Salud Pública y Bienestar Social" },
+          "procuringEntity": {
+            "id": "PY-RUC-80016909",
+            "name": "Ministerio de Salud Pública y Bienestar Social"
+          },
           "items": [
             {
               "id": "1",
-              "classification": { "scheme": "UNSPSC", "id": "42142523", "description": "Jeringas hipodérmicas" }
+              "classification": {
+                "scheme": "UNSPSC",
+                "id": "42142523",
+                "description": "Jeringas hipodérmicas"
+              }
             }
           ],
           "documents": [
@@ -68,7 +81,11 @@
             "name": "Municipalidad de Ciudad del Este",
             "roles": ["buyer"],
             "identifier": { "scheme": "PY-RUC", "id": "30002020-1" },
-            "address": { "region": "Alto Paraná", "locality": "Ciudad del Este", "countryName": "Paraguay" }
+            "address": {
+              "region": "Alto Paraná",
+              "locality": "Ciudad del Este",
+              "countryName": "Paraguay"
+            }
           },
           {
             "id": "PY-RUC-80099887",
@@ -87,11 +104,18 @@
           "procurementMethodDetails": "Licitación por Concurso de Ofertas",
           "mainProcurementCategory": "works",
           "value": { "amount": 2800000000, "currency": "PYG" },
-          "tenderPeriod": { "startDate": "2024-01-15T08:00:00Z", "endDate": "2024-02-10T11:00:00Z" },
+          "tenderPeriod": {
+            "startDate": "2024-01-15T08:00:00Z",
+            "endDate": "2024-02-10T11:00:00Z"
+          },
           "items": [
             {
               "id": "1",
-              "classification": { "scheme": "UNSPSC", "id": "72141115", "description": "Servicios de pavimentación" }
+              "classification": {
+                "scheme": "UNSPSC",
+                "id": "72141115",
+                "description": "Servicios de pavimentación"
+              }
             }
           ]
         },
@@ -139,7 +163,11 @@
           "items": [
             {
               "id": "1",
-              "classification": { "scheme": "UNSPSC", "id": "44121700", "description": "Útiles escolares" }
+              "classification": {
+                "scheme": "UNSPSC",
+                "id": "44121700",
+                "description": "Útiles escolares"
+              }
             }
           ]
         }

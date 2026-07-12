@@ -37,12 +37,12 @@ subscription**. Paraguay has no strong incumbent doing AI-grade matching.
 
 ## Revenue model (recommended ladder)
 
-| Tier | Price (indicative) | What they get |
-|---|---|---|
-| **Free** | $0 | Browse all tenders, basic filters, 3-day delayed data or limited results. Purpose: SEO + funnel. |
-| **Pro** | ~$29–49/mo | Real-time data, unlimited filters, saved searches, daily email alerts, AI match feed for 1 company profile. |
-| **Business** | ~$99–149/mo | Everything + WhatsApp alerts, competitor tracking (who won, prices), award-history analytics, AI bid summaries, 3 profiles, multi-user. |
-| **Agency/API** | ~$299+/mo | Many profiles, API access, white-label reports. |
+| Tier           | Price (indicative) | What they get                                                                                                                           |
+| -------------- | ------------------ | --------------------------------------------------------------------------------------------------------------------------------------- |
+| **Free**       | $0                 | Browse all tenders, basic filters, 3-day delayed data or limited results. Purpose: SEO + funnel.                                        |
+| **Pro**        | ~$29–49/mo         | Real-time data, unlimited filters, saved searches, daily email alerts, AI match feed for 1 company profile.                             |
+| **Business**   | ~$99–149/mo        | Everything + WhatsApp alerts, competitor tracking (who won, prices), award-history analytics, AI bid summaries, 3 profiles, multi-user. |
+| **Agency/API** | ~$299+/mo          | Many profiles, API access, white-label reports.                                                                                         |
 
 Pricing notes for Paraguay: purchasing power is lower than EU — price in USD but keep
 Pro under ~Gs. 400,000/mo equivalent. The buyers ROI-justify easily: DNCP moves

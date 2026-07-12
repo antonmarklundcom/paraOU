@@ -9,6 +9,12 @@ export default defineConfig({
     globals: true,
     // Load .env before test modules import (env.ts validates at import time).
     setupFiles: ["dotenv/config"],
+    // Vitest applies `env` before a test file's own module graph loads, unlike a
+    // top-of-file `process.env.X ??=` (import statements are hoisted above it, so
+    // env.ts — imported transitively — would already have cached X as unset). CI has
+    // no real Gemini key; recorded-response tests only need a non-empty string to
+    // pass env validation, since the fake fetch never sends it anywhere.
+    env: { GEMINI_API_KEY: process.env.GEMINI_API_KEY || "test-key" },
     // Integration suites share one Postgres and each truncates/seeds in beforeAll,
     // so run test files serially to avoid cross-file DB races.
     fileParallelism: false,

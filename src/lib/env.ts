@@ -36,6 +36,29 @@ const schema = z.object({
   DEFAULT_PYG_PER_USD: z.coerce.number().positive().default(7300),
   // Per-IP request budget for public API endpoints (protect the free tier).
   API_RATE_LIMIT_PER_MIN: z.coerce.number().positive().default(60),
+
+  // ── AI (Phase 4) ───────────────────────────────────────────────────
+  // Gemini is the default provider (docs/04, owner decision). Keys optional so the
+  // app builds without secrets; when the active provider's key is missing, AI
+  // features run in "unconfigured" mode and jobs skip loudly instead of crashing.
+  AI_PROVIDER: z.enum(["gemini", "anthropic"]).default("gemini"),
+  GEMINI_API_KEY: z.string().optional(),
+  ANTHROPIC_API_KEY: z.string().optional(),
+  // pgvector column dimension. Changing it requires a migration + re-embedding
+  // (docs/04) — embeddings are recomputable from Tender.raw.
+  EMBEDDING_DIM: z.coerce.number().int().positive().default(768),
+  // Daily AI spend ceiling (docs/04 kill switch). Summed from AiUsage.estCostUsd
+  // over the current America/Asuncion day.
+  AI_DAILY_BUDGET_USD: z.coerce.number().positive().default(5),
+  // Model ids are env-overridable: verified live 2026-07, but Google rotates
+  // families fast (Gemini 3.x already stable) — upgrade via env, not code.
+  GEMINI_MODEL_JUDGE: z.string().default("gemini-2.5-flash-lite"),
+  GEMINI_MODEL_SUMMARY: z.string().default("gemini-2.5-flash"),
+  GEMINI_MODEL_ANALYSIS: z.string().default("gemini-2.5-pro"),
+  GEMINI_MODEL_EMBEDDING: z.string().default("gemini-embedding-001"),
+  // Gate for /admin/ai (Phase 4). Page 404s unless this is set and matches the
+  // ?key= query param. Replaced by proper roles in Phase 5.
+  ADMIN_KEY: z.string().optional(),
 });
 
 export type Env = z.infer<typeof schema>;
@@ -59,4 +82,15 @@ export const env = loadEnv();
  */
 export function dncpConfigured(): boolean {
   return Boolean(env.DNCP_CONSUMER_KEY && env.DNCP_CONSUMER_SECRET && env.DNCP_REQUEST_TOKEN);
+}
+
+/**
+ * True when the active AI provider has its API key. When false, AI jobs
+ * (embeddings, matching, summaries) skip with a warning instead of crashing —
+ * same convention as `dncpConfigured`.
+ */
+export function aiConfigured(): boolean {
+  return env.AI_PROVIDER === "gemini"
+    ? Boolean(env.GEMINI_API_KEY)
+    : Boolean(env.ANTHROPIC_API_KEY);
 }

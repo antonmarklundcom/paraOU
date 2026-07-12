@@ -7,6 +7,7 @@ import { getPygPerUsd } from "@/lib/money";
 import { dict } from "@/lib/i18n";
 import { Card, StatusBadge, Tag } from "@/components/ui";
 import { TenderActions } from "@/components/TenderActions";
+import { AiSummary } from "@/components/AiSummary";
 import { formatGs, formatUsdApprox, formatDate, deadlinePhrase } from "@/lib/format";
 
 export const dynamic = "force-dynamic";
@@ -110,12 +111,7 @@ export default async function TenderDetailPage({ params }: { params: Promise<{ o
         <TenderActions ocid={tender.ocid} hasDeadline={Boolean(tender.deadlineAt)} />
       </div>
 
-      {tender.aiSummary && (
-        <Card className="mt-5 p-4">
-          <h2 className="text-sm font-semibold">{t.summary}</h2>
-          <p className="mt-1 text-sm text-muted-foreground">{tender.aiSummary}</p>
-        </Card>
-      )}
+      {tender.aiSummary && <AiSummary tenderId={tender.id} summary={tender.aiSummary} />}
 
       {/* Key facts */}
       <Card className="mt-5 p-4">

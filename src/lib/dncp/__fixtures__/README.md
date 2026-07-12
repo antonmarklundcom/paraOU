@@ -12,7 +12,7 @@ replace these with 5–10 real record/release responses and save the OpenAPI spe
 contrataciones.gov.py (network policy — docs/06 risk T4), so these were built from the
 OCDS 1.1 schema and DNCP's documented usage.
 
-| File | Purpose |
-|---|---|
-| `record-package.json` | 3 tenders: OPEN (goods), CONTRACTED/awarded (works), PLANNED (goods). |
+| File                          | Purpose                                                                                                                                        |
+| ----------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
+| `record-package.json`         | 3 tenders: OPEN (goods), CONTRACTED/awarded (works), PLANNED (goods).                                                                          |
 | `record-package-updated.json` | A later compiled release of `ocds-03ad3f-390111` (status + deadline + award change) — exercises change-event detection and idempotent updates. |

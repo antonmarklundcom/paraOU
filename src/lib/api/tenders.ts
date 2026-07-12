@@ -310,6 +310,7 @@ export async function getTenderDetail(ocid: string) {
   }
 
   return {
+    id: tender.id,
     ocid: tender.ocid,
     dncpId: tender.dncpId,
     title: tender.title,

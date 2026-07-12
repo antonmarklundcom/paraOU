@@ -4,6 +4,7 @@
 **Read first:** docs/01-dncp-api.md, docs/02-architecture.md, docs/03-data-model.md.
 
 ## Prerequisites (owner-provided, in `.env`)
+
 `DNCP_REQUEST_TOKEN` (and consumer key/secret), `DATABASE_URL`.
 If these are missing, build everything against recorded fixtures (see step 2) and
 mark the live-verification steps as TODO for the owner.
@@ -43,6 +44,7 @@ mark the live-verification steps as TODO for the owner.
    `/api/health` returns last sync age + counts.
 
 ## Acceptance criteria
+
 - `docker compose up` + `npm run worker:dev` ingests real (or fixture) tenders;
   re-running causes zero duplicates.
 - `npx prisma studio` shows tenders with title, buyer, amounts, deadline, raw JSON.
