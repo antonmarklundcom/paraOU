@@ -5,14 +5,17 @@ import { logger } from "../lib/log.js";
 import { dncpConfigured } from "../lib/env.js";
 import { reconcileRecent, syncIncremental } from "./sync.js";
 import { runAiPass } from "./aiPass.js";
+import { runAlertEngine } from "../lib/alerts/engine.js";
 
 /**
  * Ingestion worker entry (docs/02, PHASE-1 step 5): a single long-running process
  * driven by node-cron. Web latency is never affected because sync runs here, not in
  * request handlers (CLAUDE.md rule 3).
  *
- *  - incremental sync every 30 min
+ *  - incremental sync every 30 min (+ AI pass, + INSTANT-frequency alerts)
  *  - nightly reconciliation of the last 3 days at 03:15 America/Asuncion
+ *  - daily digest (PHASE-5 #3) at 08:00 America/Asuncion for alertFrequency=DAILY
+ *  - weekly digest Mondays 08:00 for alertFrequency=WEEKLY
  *
  * Jobs never overlap (a simple in-process lock) and errors are logged, not thrown,
  * so one bad run doesn't kill the worker.
@@ -45,10 +48,12 @@ async function start() {
     "ParaOU ingestion worker starting",
   );
 
-  // Sync then AI post-pass (Phase 4): embeddings → summaries → match funnel.
+  // Sync then AI post-pass (Phase 4) then INSTANT alerts (Phase 5): embeddings →
+  // summaries → match funnel → digest for users who chose instant alerts.
   const syncThenAi = async () => {
     await syncIncremental(prisma);
     await runAiPass();
+    await runAlertEngine(["INSTANT"]);
   };
 
   // Run one incremental sync immediately on boot so a fresh deploy has data.
@@ -70,7 +75,21 @@ async function start() {
     { timezone: TZ },
   );
 
-  logger.info("cron schedules registered (incremental */30, reconcile 03:15)");
+  // Daily digest at 08:00 — after the reconciliation pass has settled the data.
+  cron.schedule("0 8 * * *", () => void guarded("daily-digest", () => runAlertEngine(["DAILY"])), {
+    timezone: TZ,
+  });
+
+  // Weekly digest Mondays at 08:00.
+  cron.schedule(
+    "0 8 * * 1",
+    () => void guarded("weekly-digest", () => runAlertEngine(["WEEKLY"])),
+    { timezone: TZ },
+  );
+
+  logger.info(
+    "cron schedules registered (incremental */30 [+instant alerts], reconcile 03:15, daily digest 08:00, weekly digest Mon 08:00)",
+  );
 }
 
 async function shutdown(signal: string) {

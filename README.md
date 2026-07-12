@@ -8,14 +8,16 @@ actually win, ranked, with a plain-language explanation."
 
 ## Status
 
-🚧 **Phases 1–4 complete.** Phase 1: DNCP client, Postgres schema, sync worker,
+🚧 **Phases 1–5 complete.** Phase 1: DNCP client, Postgres schema, sync worker,
 backfill CLI (running on synthetic OCDS fixtures — the build environment couldn't
 reach `contrataciones.gov.py`, docs/06 risk T4; live API paths/shapes still need
 verification, see [owner checklist](#before-phase-2-owner-must-verify)). Phase 2: the
 internal search/filter/sort REST API. Phase 3: the Spanish-first public UI. Phase 4:
 company profiles + the 3-stage AI match funnel on Gemini (see
 [owner checklist](#before-phase-5--owner-must-verify) — live AI verification is
-pending a billing top-up).
+pending a billing top-up). Phase 5: accounts (Auth.js magic link + optional
+Google), saved searches, and the alert digest engine (see
+[owner checklist](#before-phase-6--owner-must-verify)).
 
 | Phase                                    | Status                                                                                |
 | ---------------------------------------- | ------------------------------------------------------------------------------------- |
@@ -23,7 +25,7 @@ pending a billing top-up).
 | 2 — Internal API (search/filter/sort)    | ✅ built & tested                                                                     |
 | 3 — Frontend (overview, detail, SEO)     | ✅ built & tested                                                                     |
 | 4 — AI matching (profiles, funnel, feed) | ✅ built & tested (recorded AI responses — live calls pending billing, see checklist) |
-| 5 — Accounts & alerts                    | ⬜ not started                                                                        |
+| 5 — Accounts & alerts                    | ✅ built & tested (dev email transport — live send pending a Resend key)              |
 | 6 — Monetization                         | ⬜ not started                                                                        |
 
 ### API (Phase 2)
@@ -58,7 +60,8 @@ Spanish-first public UI (docs/05), SSR for SEO, light + dark, responsive to 360p
 
 Money formatted `es-PY` (compact "Gs. 4,5 mil M"), dates in `America/Asuncion`
 (fixed timezone — no UTC leakage). Run `npm run e2e` for the Playwright golden paths
-(browse → filter → detail → .ics; profile wizard → panel).
+(browse → filter → detail → .ics; profile wizard → panel; sign-in → saved search →
+digest).
 
 ### AI matching (Phase 4)
 
@@ -79,6 +82,35 @@ Per docs/04: a 3-stage funnel so LLM cost scales with matches, not tenders.
   detail, `/admin/ai?key=$ADMIN_KEY` (spend, kill-switch state, quality samples).
 - **CLIs**: `npm run embed:backfill` (OPEN tenders first), `npm run ai:smoke`
   (live provider check incl. a prompt-injection probe).
+
+### Accounts & alerts (Phase 5)
+
+Per docs/03/05: Auth.js v5 with database sessions.
+
+- **Auth**: `/login` — email magic link is primary (`next-auth/providers/resend`,
+  routed through `src/lib/email.ts` so dev mode logs the link instead of requiring
+  a Resend key); Google OAuth registers only when `GOOGLE_CLIENT_ID`/`_SECRET` are
+  set. First sign-in claims the browser's anonymous `/perfil` profile
+  (`POST /api/profile/claim`, fired once by `ClaimProfileOnLogin`) — never
+  overwrites a profile the account already owns.
+- **Saved searches**: "Guardar búsqueda" on `/licitaciones` serializes the current
+  filter query string to `SavedSearch`; managed (run/rename/toggle-alert/delete)
+  from `/panel`.
+- **Follow**: 🔔 on tender detail persists to `FollowedTender` for signed-in users
+  (still localStorage for anonymous visitors); status/deadline `TenderEvent`s after
+  the follow drive "tender changed" alerts.
+- **Alert engine** (`src/lib/alerts/`, run by the worker): unions three sources —
+  saved-search hits, `Match.score ≥ ALERT_MIN_MATCH_SCORE`, and followed-tender
+  changes — dedupes against `AlertLog` (a (user, tender, channel) triple is only
+  ever emailed once), and sends a React Email digest (max
+  `ALERT_DIGEST_MAX_ITEMS`, deadline-first, `List-Unsubscribe` header). Frequency
+  tiers run on separate cron schedules: `INSTANT` on every 30-min sync tick,
+  `DAILY` at 08:00 America/Asuncion, `WEEKLY` Mondays 08:00. Plan-based gating
+  (docs/04: "FREE: none or weekly teaser") is a Phase 6 hook — every plan
+  currently gets its chosen frequency, since billing doesn't exist yet.
+- **`/cuenta`**: locale, alert channel/frequency, GDPR-style delete (cascades
+  through profiles/matches/saved searches/follows/alert logs via the schema's
+  `onDelete: Cascade`).
 
 ### Running locally (Phase 1)
 
@@ -121,6 +153,21 @@ Without `DNCP_*` secrets the worker/backfill ingest the fixtures in
    proxy blocked ai.google.dev, so the cost table is a mid-2026 estimate).
 4. Still open from Phase 1: DNCP reachability from the production VPS (item list
    above) — matching runs on synthetic fixtures until real tenders flow.
+
+### Before Phase 6 — owner must verify
+
+1. **Get a Resend API key** (or SMTP creds) and set `RESEND_API_KEY` +
+   `RESEND_FROM_EMAIL` — until then all mail (magic links, digests) logs to the
+   console instead of sending. Verify a real magic-link sign-in and a real digest
+   land in an inbox, and check the digest renders acceptably in Gmail/Outlook
+   (React Email preview: `npx email dev` against `src/lib/alerts/DigestEmail.tsx`).
+2. **Set `AUTH_SECRET`** in production (`openssl rand -base64 32`) — required by
+   Auth.js; the app falls back to an insecure dev default without it.
+3. Optional: register a Google OAuth app and set `GOOGLE_CLIENT_ID`/`_SECRET` if
+   you want the Google sign-in button (magic link works without it).
+4. Decide the FREE-plan alert policy (docs/04 says "none or weekly teaser") once
+   Phase 6 billing exists — `sendDigestForUser` currently honors every user's
+   chosen `alertFrequency` regardless of plan.
 
 CI note: the migration gate uses `prisma migrate deploy` + `prisma migrate status`
 rather than a strict `prisma migrate diff --exit-code`, because Prisma cannot model

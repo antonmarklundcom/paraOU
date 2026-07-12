@@ -59,6 +59,21 @@ const schema = z.object({
   // Gate for /admin/ai (Phase 4). Page 404s unless this is set and matches the
   // ?key= query param. Replaced by proper roles in Phase 5.
   ADMIN_KEY: z.string().optional(),
+
+  // ── Auth & email (Phase 5) ──────────────────────────────────────────
+  // Auth.js session/CSRF secret. Optional so the app builds without it; auth
+  // routes throw a clear error if actually invoked while unset (see auth.ts).
+  AUTH_SECRET: z.string().optional(),
+  AUTH_URL: z.string().url().optional(),
+  GOOGLE_CLIENT_ID: z.string().optional(),
+  GOOGLE_CLIENT_SECRET: z.string().optional(),
+  // Resend transactional email (magic links + digests). Missing key => dev
+  // transport (logs the email instead of sending — CLAUDE.md rule 2).
+  RESEND_API_KEY: z.string().optional(),
+  RESEND_FROM_EMAIL: z.string().default("ParaOU <onboarding@resend.dev>"),
+  // Alert engine (worker job after each sync + matching run).
+  ALERT_MIN_MATCH_SCORE: z.coerce.number().int().min(0).max(100).default(70),
+  ALERT_DIGEST_MAX_ITEMS: z.coerce.number().int().positive().default(10),
 });
 
 export type Env = z.infer<typeof schema>;
@@ -93,4 +108,14 @@ export function aiConfigured(): boolean {
   return env.AI_PROVIDER === "gemini"
     ? Boolean(env.GEMINI_API_KEY)
     : Boolean(env.ANTHROPIC_API_KEY);
+}
+
+/** True when Resend is configured; false => dev transport (console log). */
+export function emailConfigured(): boolean {
+  return Boolean(env.RESEND_API_KEY);
+}
+
+/** True when Google OAuth creds are present (optional per docs/05). */
+export function googleAuthConfigured(): boolean {
+  return Boolean(env.GOOGLE_CLIENT_ID && env.GOOGLE_CLIENT_SECRET);
 }

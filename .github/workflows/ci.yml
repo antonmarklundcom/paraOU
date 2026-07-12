@@ -28,6 +28,7 @@ jobs:
 
     env:
       DATABASE_URL: postgresql://paraou:paraou@localhost:5432/paraou
+      AUTH_SECRET: ci-only-not-a-real-secret
 
     steps:
       - uses: actions/checkout@v4
@@ -83,6 +84,7 @@ jobs:
     env:
       DATABASE_URL: postgresql://paraou:paraou@localhost:5432/paraou
       NEXT_PUBLIC_APP_URL: http://localhost:3210
+      AUTH_SECRET: ci-only-not-a-real-secret
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4

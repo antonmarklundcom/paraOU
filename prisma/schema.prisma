@@ -1,5 +1,5 @@
-// ParaOU data model — Phases 1 (ingestion) + 4 (profiles, AI matching).
-// See docs/03-data-model.md. Phase 5 adds User / SavedSearch / AlertLog; Phase 6 billing.
+// ParaOU data model — Phases 1 (ingestion) + 4 (profiles, AI matching) +
+// 5 (accounts, saved searches, alerts). See docs/03-data-model.md. Phase 6 billing.
 //
 // Special columns managed by hand-written SQL in the migration (Prisma can't model
 // them): Tender.searchVector is a GENERATED tsvector (spanish + unaccent) with a GIN
@@ -62,10 +62,11 @@ model Tender {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  buyer   Buyer?        @relation(fields: [buyerId], references: [id])
-  awards  Award[]
-  events  TenderEvent[]
-  matches Match[]
+  buyer     Buyer?           @relation(fields: [buyerId], references: [id])
+  awards    Award[]
+  events    TenderEvent[]
+  matches   Match[]
+  followers FollowedTender[]
 
   @@index([status, deadlineAt])
   @@index([publishedAt])
@@ -149,7 +150,7 @@ model CompanyProfile {
   // Anonymous access credential kept in the browser's localStorage until Phase 5
   // auth migrates the profile to a User (docs/03). Never expose other profiles.
   anonToken   String @unique @default(cuid())
-  userId      String? // linked in Phase 5
+  userId      String? // set on first login (docs/03: anon profile migrates in)
   name        String
   description String // free text: what the company does, in their words
   categoryCodes   String[]
@@ -165,9 +166,12 @@ model CompanyProfile {
   // pgvector column managed by raw migration SQL, dim = EMBEDDING_DIM:
   embedding Unsupported("vector(768)")?
 
+  user      User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
   matches   Match[]
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  @@index([userId])
 }
 
 model Match {
@@ -223,6 +227,133 @@ model AiFeedback {
   createdAt DateTime @default(now())
 
   @@index([subject, createdAt])
+}
+
+// ── Phase 5: accounts, saved searches, alerts ───────────────────────
+
+enum Plan {
+  FREE
+  PRO
+  BUSINESS
+  AGENCY
+}
+
+enum AlertChannel {
+  EMAIL
+  NONE
+}
+
+enum AlertFrequency {
+  INSTANT
+  DAILY
+  WEEKLY
+}
+
+// Auth.js v5 PrismaAdapter shape (email magic-link + Google OAuth). Field names
+// and table layout follow the adapter's contract exactly — do not rename.
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  email         String    @unique
+  emailVerified DateTime?
+  image         String?
+  locale        String         @default("es") // es | en (CLAUDE.md: es default)
+  plan          Plan           @default(FREE)
+  alertChannel  AlertChannel   @default(EMAIL)
+  alertFrequency AlertFrequency @default(DAILY)
+  stripeCustomerId String?
+  emailBounced  Boolean        @default(false) // set on hard bounce; stops sends
+
+  accounts      Account[]
+  sessions      Session[]
+  profiles      CompanyProfile[]
+  savedSearches SavedSearch[]
+  followedTenders FollowedTender[]
+  alertLogs     AlertLog[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Account {
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([provider, providerAccountId])
+}
+
+model Session {
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String
+  expires    DateTime
+
+  @@id([identifier, token])
+}
+
+model SavedSearch {
+  id       String  @id @default(cuid())
+  userId   String
+  name     String
+  params   Json // serialized /licitaciones filter state (docs/03)
+  alerting Boolean @default(true)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+}
+
+// 🔔 follow on tender detail (Phase 3 had this in localStorage only). Logged-in
+// users persist here; TenderEvents (Phase 1) drive "changed" alerts for follows.
+model FollowedTender {
+  id       String @id @default(cuid())
+  userId   String
+  tenderId String
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tender Tender @relation(fields: [tenderId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@unique([userId, tenderId])
+  @@index([tenderId])
+}
+
+// Dedupe + audit of sent alerts (docs/03). One row per (user, tender, channel) —
+// re-running the alert job never double-sends for the same tender.
+model AlertLog {
+  id       String   @id @default(cuid())
+  userId   String
+  tenderId String
+  channel  String // "email"
+  reason   String // "saved_search" | "match" | "tender_changed"
+  sentAt   DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, tenderId, channel])
+  @@index([userId, sentAt])
 }
 
 model ExchangeRate {

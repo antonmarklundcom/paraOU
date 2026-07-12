@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import { MatchCard, type MatchItem } from "@/components/MatchCard";
+import { SavedSearchesPanel } from "@/components/SavedSearchesPanel";
 import { dict } from "@/lib/i18n";
 import { getProfileToken, profileFetch } from "@/lib/profileStore";
 
@@ -43,14 +44,17 @@ export function PanelFeed() {
   }
   if (state === "noProfile") {
     return (
-      <div className="mt-6 rounded-lg border border-border p-6 text-center">
-        <p className="text-muted-foreground">{t.noProfile}</p>
-        <Link
-          href="/perfil"
-          className="mt-4 inline-block rounded-md bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground hover:opacity-90"
-        >
-          {t.createProfile}
-        </Link>
+      <div className="mt-6">
+        <SavedSearchesPanel />
+        <div className="rounded-lg border border-border p-6 text-center">
+          <p className="text-muted-foreground">{t.noProfile}</p>
+          <Link
+            href="/perfil"
+            className="mt-4 inline-block rounded-md bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground hover:opacity-90"
+          >
+            {t.createProfile}
+          </Link>
+        </div>
       </div>
     );
   }
@@ -64,6 +68,7 @@ export function PanelFeed() {
 
   return (
     <div className="mt-6 space-y-8">
+      <SavedSearchesPanel />
       <div className="flex items-center justify-between">
         <Link href="/perfil" className="text-sm text-primary hover:underline">
           {dict().perfil.edit}

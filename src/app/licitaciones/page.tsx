@@ -7,6 +7,7 @@ import { dict } from "@/lib/i18n";
 import { serialize, type RawParams } from "@/lib/urlParams";
 import { FilterRail, SortControl, ActiveChips } from "@/components/overview";
 import { TenderList } from "@/components/TenderList";
+import { SaveSearchButton } from "@/components/SaveSearchButton";
 
 export const dynamic = "force-dynamic";
 
@@ -74,6 +75,7 @@ export default async function LicitacionesPage({
         <section className="min-w-0 flex-1">
           <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
             <SortControl params={raw} />
+            <SaveSearchButton />
           </div>
           <div className="mb-4">
             <ActiveChips params={raw} options={options} />
