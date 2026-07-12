@@ -3,6 +3,9 @@ import Link from "next/link";
 import "./globals.css";
 import { dict } from "@/lib/i18n";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import { AuthProvider } from "@/components/AuthProvider";
+import { AuthHeader } from "@/components/AuthHeader";
+import { ClaimProfileOnLogin } from "@/components/ClaimProfileOnLogin";
 
 export const metadata: Metadata = {
   title: { default: "ParaOU — Licitaciones de Paraguay", template: "%s · ParaOU" },
@@ -21,28 +24,32 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
         <script dangerouslySetInnerHTML={{ __html: themeScript }} />
       </head>
       <body className="min-h-screen">
-        <header className="sticky top-0 z-20 border-b border-border bg-background/90 backdrop-blur">
-          <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-3">
-            <Link href="/" className="flex items-center gap-2 font-bold">
-              <span className="text-primary">◆</span> {t.brand}
-            </Link>
-            <nav className="flex items-center gap-4 text-sm">
-              <Link href="/licitaciones" className="hover:text-primary">
-                {t.nav.tenders}
+        <AuthProvider>
+          <ClaimProfileOnLogin />
+          <header className="sticky top-0 z-20 border-b border-border bg-background/90 backdrop-blur">
+            <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-3">
+              <Link href="/" className="flex items-center gap-2 font-bold">
+                <span className="text-primary">◆</span> {t.brand}
               </Link>
-              <Link href="/panel" className="hover:text-primary">
-                {t.nav.panel}
-              </Link>
-              <ThemeToggle />
-            </nav>
-          </div>
-        </header>
-        {children}
-        <footer className="mt-16 border-t border-border">
-          <div className="mx-auto max-w-6xl px-4 py-6 text-xs text-muted-foreground">
-            {t.overview.source} · {t.tagline}
-          </div>
-        </footer>
+              <nav className="flex items-center gap-4 text-sm">
+                <Link href="/licitaciones" className="hover:text-primary">
+                  {t.nav.tenders}
+                </Link>
+                <Link href="/panel" className="hover:text-primary">
+                  {t.nav.panel}
+                </Link>
+                <ThemeToggle />
+                <AuthHeader />
+              </nav>
+            </div>
+          </header>
+          {children}
+          <footer className="mt-16 border-t border-border">
+            <div className="mx-auto max-w-6xl px-4 py-6 text-xs text-muted-foreground">
+              {t.overview.source} · {t.tagline}
+            </div>
+          </footer>
+        </AuthProvider>
       </body>
     </html>
   );

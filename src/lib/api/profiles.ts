@@ -29,12 +29,45 @@ export function profileToken(req: Request): string {
   return token;
 }
 
+/**
+ * Resolve the caller's profile: a logged-in user's owned profile takes priority
+ * (Phase 5), falling back to the anonymous `x-profile-token` header (Phase 4) for
+ * visitors who haven't signed in yet. One profile per user in this MVP — the
+ * schema allows more later, but the wizard/panel only ever operate on one.
+ */
 export async function requireProfile(req: Request): Promise<CompanyProfile> {
+  const { auth } = await import("../auth.js");
+  const session = await auth();
+  if (session?.user?.id) {
+    const owned = await prisma.companyProfile.findFirst({
+      where: { userId: session.user.id },
+      orderBy: { createdAt: "asc" },
+    });
+    if (owned) return owned;
+  }
   const profile = await prisma.companyProfile.findUnique({
     where: { anonToken: profileToken(req) },
   });
   if (!profile) throw new ApiError(404, "PROFILE_NOT_FOUND", "No profile for this token");
   return profile;
+}
+
+/**
+ * First-login migration (PHASE-5 #1): attach the browser's anonymous profile to
+ * the new/returning account. No-ops if the token is unknown, already claimed, or
+ * the user already owns a profile (never silently merge two profiles).
+ */
+export async function claimAnonymousProfile(
+  userId: string,
+  anonToken: string,
+): Promise<CompanyProfile | null> {
+  const alreadyOwned = await prisma.companyProfile.findFirst({ where: { userId } });
+  if (alreadyOwned) return alreadyOwned;
+
+  const anon = await prisma.companyProfile.findUnique({ where: { anonToken } });
+  if (!anon || anon.userId) return null;
+
+  return prisma.companyProfile.update({ where: { id: anon.id }, data: { userId } });
 }
 
 function toData(body: ProfileBody) {
@@ -52,7 +85,11 @@ function toData(body: ProfileBody) {
 }
 
 export async function createProfile(body: ProfileBody): Promise<CompanyProfile> {
-  return prisma.companyProfile.create({ data: toData(body) });
+  const { auth } = await import("../auth.js");
+  const session = await auth();
+  return prisma.companyProfile.create({
+    data: { ...toData(body), userId: session?.user?.id ?? null },
+  });
 }
 
 /** Update + bump `version` so the match cache re-judges pairs (docs/04). */
