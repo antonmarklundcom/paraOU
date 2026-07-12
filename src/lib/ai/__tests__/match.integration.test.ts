@@ -1,5 +1,6 @@
-process.env.GEMINI_API_KEY ??= "test-key";
-
+// GEMINI_API_KEY is set via vitest.config.ts `test.env` (guaranteed before any
+// module in this file's graph loads — a top-of-file process.env assignment here
+// would run too late, since import statements are hoisted above it).
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { prisma } from "../../db.js";
 import type { JudgeResult } from "../provider.js";

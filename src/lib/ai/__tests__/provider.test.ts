@@ -1,7 +1,6 @@
 // Recorded-response tests for stage-3 parsing (PHASE-4 acceptance) — the fake
-// fetch returns payloads captured from the live v1beta API shape.
-process.env.GEMINI_API_KEY ??= "test-key";
-
+// fetch returns payloads captured from the live v1beta API shape. GEMINI_API_KEY
+// is set via vitest.config.ts `test.env` (see that file for why not here).
 import { beforeAll, describe, expect, it } from "vitest";
 import { prisma } from "../../db.js";
 import { getAiProvider, parseJudgeJson } from "../provider.js";
