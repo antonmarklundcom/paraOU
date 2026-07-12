@@ -1,30 +1,75 @@
 "use client";
 
+import { useState } from "react";
 import { dict } from "@/lib/i18n";
+import { cn } from "@/lib/cn";
 
 /**
- * AI match badge (docs/05). Phase 3 non-goal: real matching is Phase 4, so this
- * renders behind a feature flag with MOCK data purely to prove the layout. Enable
- * with NEXT_PUBLIC_SHOW_MATCH_BADGE=1.
+ * AI match badge + expandable reasoning (docs/05). Phase 4: renders REAL scores
+ * from the Match table — the Phase 3 mock/feature-flag is gone. Renders nothing
+ * when the row has no match for the visitor's profile.
  */
-export function matchFeatureEnabled(): boolean {
-  return process.env.NEXT_PUBLIC_SHOW_MATCH_BADGE === "1";
+
+function scoreTone(score: number): string {
+  if (score >= 75) return "text-status-open";
+  if (score >= 50) return "text-status-closing";
+  return "text-muted-foreground";
 }
 
-/** Deterministic mock score from the ocid so the layout looks real in demos. */
-function mockScore(ocid: string): number {
-  let h = 0;
-  for (const ch of ocid) h = (h * 31 + ch.charCodeAt(0)) % 1000;
-  return 60 + (h % 40); // 60–99
+export interface MatchInfo {
+  score: number;
+  fitReasons: string[];
+  cautions: string[];
 }
 
-export function MatchBadge({ ocid }: { ocid: string }) {
-  if (!matchFeatureEnabled()) return null;
-  const score = mockScore(ocid);
+export function MatchBadge({ match }: { match?: MatchInfo | null }) {
+  const [open, setOpen] = useState(false);
+  if (!match) return null;
+  const t = dict().match;
+  const expandable = match.fitReasons.length > 0 || match.cautions.length > 0;
   return (
-    <span className="inline-flex items-center gap-1 text-xs font-semibold text-primary">
-      {score}% {dict().match.badge}
-      <span className="font-normal text-muted-foreground">· {dict().match.why}</span>
+    <span className="inline-flex flex-col items-end">
+      <button
+        type="button"
+        disabled={!expandable}
+        onClick={() => setOpen((o) => !o)}
+        className={cn(
+          "inline-flex items-center gap-1 text-xs font-semibold",
+          scoreTone(match.score),
+        )}
+        aria-expanded={open}
+      >
+        {match.score}% {t.badge}
+        {expandable && (
+          <span className="font-normal text-muted-foreground underline decoration-dotted">
+            · {t.why}
+          </span>
+        )}
+      </button>
+      {open && (
+        <span className="mt-2 block w-64 max-w-full rounded-md border border-border bg-muted p-2 text-left text-xs">
+          {match.fitReasons.length > 0 && (
+            <>
+              <span className="font-semibold">{t.reasons}:</span>
+              <ul className="mb-1 list-disc pl-4">
+                {match.fitReasons.map((r) => (
+                  <li key={r}>{r}</li>
+                ))}
+              </ul>
+            </>
+          )}
+          {match.cautions.length > 0 && (
+            <>
+              <span className="font-semibold text-status-closing">⚠ {t.cautions}:</span>
+              <ul className="list-disc pl-4">
+                {match.cautions.map((c) => (
+                  <li key={c}>{c}</li>
+                ))}
+              </ul>
+            </>
+          )}
+        </span>
+      )}
     </span>
   );
 }

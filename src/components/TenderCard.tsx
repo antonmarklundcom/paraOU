@@ -3,7 +3,7 @@
 import Link from "next/link";
 import type { TenderListItem } from "@/lib/api/tenders";
 import { Card, StatusBadge, Tag } from "@/components/ui";
-import { MatchBadge } from "@/components/MatchBadge";
+import { MatchBadge, type MatchInfo } from "@/components/MatchBadge";
 import { formatGs, formatUsdApprox, formatDateShort, deadlinePhrase } from "@/lib/format";
 import { cn } from "@/lib/cn";
 
@@ -11,7 +11,15 @@ import { cn } from "@/lib/cn";
  * Tender row card (docs/05 anatomy). Real link (SSR, middle-click friendly). The
  * deadline countdown is the most prominent secondary element.
  */
-export function TenderCard({ tender, usdRate }: { tender: TenderListItem; usdRate: number }) {
+export function TenderCard({
+  tender,
+  usdRate,
+  match,
+}: {
+  tender: TenderListItem;
+  usdRate: number;
+  match?: MatchInfo | null;
+}) {
   const usd = formatUsdApprox(tender.amountMax, usdRate);
   const closingSoon =
     tender.daysUntilDeadline !== null &&
@@ -22,7 +30,7 @@ export function TenderCard({ tender, usdRate }: { tender: TenderListItem; usdRat
     <Card className="p-4 transition-colors hover:border-primary/50">
       <div className="flex items-start justify-between gap-3">
         <StatusBadge status={tender.status} daysUntilDeadline={tender.daysUntilDeadline} />
-        <MatchBadge ocid={tender.ocid} />
+        <MatchBadge match={match} />
       </div>
 
       <h3 className="mt-1.5 text-base font-semibold leading-snug">
