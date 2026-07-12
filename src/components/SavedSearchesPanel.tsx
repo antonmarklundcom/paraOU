@@ -80,11 +80,7 @@ export function SavedSearchesPanel() {
             </Link>
             <span className="flex items-center gap-3 text-muted-foreground">
               <label className="flex items-center gap-1.5">
-                <input
-                  type="checkbox"
-                  checked={s.alerting}
-                  onChange={() => void toggleAlert(s)}
-                />
+                <input type="checkbox" checked={s.alerting} onChange={() => void toggleAlert(s)} />
                 {t.toggleAlert}
               </label>
               <button type="button" onClick={() => void rename(s)} className="hover:text-primary">

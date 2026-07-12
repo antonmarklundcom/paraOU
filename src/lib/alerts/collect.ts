@@ -75,7 +75,9 @@ async function fromMatches(userId: string): Promise<AlertCandidate[]> {
       userAction: { not: "DISMISSED" },
       tender: { status: "OPEN" },
     },
-    include: { tender: { select: { id: true, ocid: true, title: true, buyerName: true, deadlineAt: true } } },
+    include: {
+      tender: { select: { id: true, ocid: true, title: true, buyerName: true, deadlineAt: true } },
+    },
   });
   return matches.map((m) => ({
     tenderId: m.tender.id,
@@ -91,7 +93,18 @@ async function fromMatches(userId: string): Promise<AlertCandidate[]> {
 async function fromFollowedChanges(userId: string): Promise<AlertCandidate[]> {
   const follows = await prisma.followedTender.findMany({
     where: { userId },
-    include: { tender: { select: { id: true, ocid: true, title: true, buyerName: true, deadlineAt: true, status: true } } },
+    include: {
+      tender: {
+        select: {
+          id: true,
+          ocid: true,
+          title: true,
+          buyerName: true,
+          deadlineAt: true,
+          status: true,
+        },
+      },
+    },
   });
   const out: AlertCandidate[] = [];
   for (const f of follows) {
@@ -142,6 +155,8 @@ export async function collectAlertCandidates(userId: string): Promise<AlertCandi
   const sent = await alreadySent(userId, [...byTender.keys()]);
   const fresh = [...byTender.values()].filter((c) => !sent.has(c.tenderId));
 
-  fresh.sort((a, b) => (a.deadlineAt?.getTime() ?? Infinity) - (b.deadlineAt?.getTime() ?? Infinity));
+  fresh.sort(
+    (a, b) => (a.deadlineAt?.getTime() ?? Infinity) - (b.deadlineAt?.getTime() ?? Infinity),
+  );
   return fresh.slice(0, env.ALERT_DIGEST_MAX_ITEMS);
 }

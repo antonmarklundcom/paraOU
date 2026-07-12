@@ -47,9 +47,7 @@ export async function sendDigestForUser(userId: string): Promise<DigestResult> {
   }));
 
   const unsubscribeUrl = `${APP_URL}/cuenta`;
-  const html = await render(
-    DigestEmail({ appUrl: APP_URL, companyName, items, unsubscribeUrl }),
-  );
+  const html = await render(DigestEmail({ appUrl: APP_URL, companyName, items, unsubscribeUrl }));
 
   await sendEmail({
     to: user.email,

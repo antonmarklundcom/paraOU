@@ -28,6 +28,11 @@ export default defineConfig({
     url: `http://localhost:${PORT}`,
     reuseExistingServer: !process.env.CI,
     timeout: 120_000,
+    // Enables POST /api/dev/run-digest (e2e/accounts-alerts.spec.ts) — the alert
+    // engine imports "next/server" transitively, which only resolves under
+    // Next's own bundler, not Playwright's plain Node loader, so the e2e spec
+    // triggers it over HTTP instead of importing it directly.
+    env: { ...process.env, E2E_TEST_HOOKS: "1" },
   },
   projects: [
     { name: "chromium", use: { ...devices["Desktop Chrome"], launchOptions: { executablePath } } },
