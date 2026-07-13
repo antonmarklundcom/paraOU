@@ -67,6 +67,7 @@ model Tender {
   events    TenderEvent[]
   matches   Match[]
   followers FollowedTender[]
+  documentAnalyses DocumentAnalysis[]
 
   @@index([status, deadlineAt])
   @@index([publishedAt])
@@ -261,7 +262,16 @@ model User {
   plan          Plan           @default(FREE)
   alertChannel  AlertChannel   @default(EMAIL)
   alertFrequency AlertFrequency @default(DAILY)
-  stripeCustomerId String?
+  stripeCustomerId       String?
+  stripeSubscriptionId   String?
+  // Set by the webhook on checkout/renewal/cancellation (PHASE-6 #2). Grace
+  // period on payment failure is handled by Stripe's own retry schedule; we only
+  // downgrade `plan` when Stripe tells us the subscription is truly gone.
+  subscriptionStatus     String? // active | past_due | canceled | ...
+  currentPeriodEnd       DateTime?
+  // B2B bank-transfer deals (docs/06 risk B4): an admin flips this instead of
+  // routing through Stripe; billing checks skip the Stripe state for these users.
+  manualBilling          Boolean        @default(false)
   emailBounced  Boolean        @default(false) // set on hard bounce; stops sends
 
   accounts      Account[]
@@ -270,6 +280,7 @@ model User {
   savedSearches SavedSearch[]
   followedTenders FollowedTender[]
   alertLogs     AlertLog[]
+  documentAnalyses DocumentAnalysis[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -354,6 +365,26 @@ model AlertLog {
 
   @@unique([userId, tenderId, channel])
   @@index([userId, sentAt])
+}
+
+// ── Phase 6: billing, document analysis, admin ──────────────────────
+
+// "Analizar pliego" (PHASE-6 #4, Business tier): cached per (tenderId,
+// documentsUrl) so re-analysis is never re-billed against the quota; counted
+// per user per calendar month for the quota check.
+model DocumentAnalysis {
+  id           String   @id @default(cuid())
+  userId       String
+  tenderId     String
+  documentsUrl String
+  checklist    Json // structured requirements checklist (docs/04)
+  createdAt    DateTime @default(now())
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tender Tender @relation(fields: [tenderId], references: [id], onDelete: Cascade)
+
+  @@unique([tenderId, documentsUrl])
+  @@index([userId, createdAt])
 }
 
 model ExchangeRate {
