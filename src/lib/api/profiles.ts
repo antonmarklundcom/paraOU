@@ -1,6 +1,7 @@
-import { Prisma, type CompanyProfile } from "@prisma/client";
+import { Prisma, type CompanyProfile, type Plan } from "@prisma/client";
 import { z } from "zod";
 import { prisma } from "../db.js";
+import { limitsFor } from "../plan.js";
 import { ApiError } from "./http.js";
 
 /**
@@ -84,9 +85,28 @@ function toData(body: ProfileBody) {
   };
 }
 
+/**
+ * Anonymous visitors always get a fresh profile (they have none yet by
+ * definition). Signed-in users are capped by their plan's `maxProfiles`
+ * (PHASE-6 #1) — multi-profile *switching* in the UI is still Phase 4's
+ * single-profile wizard/panel, so BUSINESS's extra profile slots exist at the
+ * data/API level today; a profile-switcher UI is a fast-follow, not a Phase 6
+ * blocker (data isn't gated, only AI intelligence is).
+ */
 export async function createProfile(body: ProfileBody): Promise<CompanyProfile> {
   const { auth } = await import("../auth.js");
   const session = await auth();
+  if (session?.user?.id) {
+    const existing = await prisma.companyProfile.count({ where: { userId: session.user.id } });
+    const max = limitsFor(session.user.plan as Plan).maxProfiles;
+    if (existing >= max) {
+      throw new ApiError(
+        403,
+        "PLAN_LIMIT",
+        `Your plan allows ${max} compan${max === 1 ? "y profile" : "y profiles"} — upgrade at /precios`,
+      );
+    }
+  }
   return prisma.companyProfile.create({
     data: { ...toData(body), userId: session?.user?.id ?? null },
   });

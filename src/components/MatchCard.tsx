@@ -32,6 +32,9 @@ export interface MatchItem {
   verdict: string;
   fitReasons: string[];
   cautions: string[];
+  /** False when the plan's daily full-reasoning cap hides fitReasons/cautions
+   * (PHASE-6 #1) — score/verdict still show. */
+  reasoningVisible?: boolean;
   userAction: "NONE" | "SAVED" | "BIDDING" | "DISMISSED";
 }
 
@@ -75,6 +78,7 @@ export function MatchCard({
         <StatusBadge status={item.status} daysUntilDeadline={item.daysUntilDeadline} />
         <MatchBadge
           match={{ score: item.score, fitReasons: item.fitReasons, cautions: item.cautions }}
+          reasoningVisible={item.reasoningVisible ?? true}
         />
       </div>
       <h3 className="mt-1.5 text-base font-semibold leading-snug">
