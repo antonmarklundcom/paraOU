@@ -8,6 +8,7 @@ import { dict } from "@/lib/i18n";
 import { Card, StatusBadge, Tag } from "@/components/ui";
 import { TenderActions } from "@/components/TenderActions";
 import { AiSummary } from "@/components/AiSummary";
+import { DocumentAnalysis } from "@/components/DocumentAnalysis";
 import { formatGs, formatUsdApprox, formatDate, deadlinePhrase } from "@/lib/format";
 
 export const dynamic = "force-dynamic";
@@ -228,6 +229,8 @@ export default async function TenderDetailPage({ params }: { params: Promise<{ o
           )}
         </div>
       </Card>
+
+      <DocumentAnalysis ocid={tender.ocid} hasDocuments={Boolean(tender.documentsUrl)} />
 
       <p className="mt-5 text-xs text-muted-foreground">
         ⚠️ {t.verifyOfficial} · {dict().overview.source}

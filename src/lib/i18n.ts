@@ -230,6 +230,17 @@ const es = {
     anchor: "Ganar una sola licitación paga años de suscripción.",
     checkoutError: "No pudimos iniciar el pago. Probá de nuevo o contactanos.",
   },
+  docAnalysis: {
+    title: "Analizar pliego con IA",
+    hint: "Extrae una checklist de requisitos para ofertar a partir del pliego oficial.",
+    button: "Analizar pliego",
+    analyzing: "Analizando…",
+    signInFirst: "Ingresá para analizar el pliego.",
+    businessOnly: "El análisis de pliegos es para el plan Business.",
+    genericError: "No pudimos analizar el documento. Probá de nuevo.",
+    disclaimer: "Generado con IA a partir del PDF publicado — verificá siempre el pliego oficial.",
+    cachedNote: "(resultado ya analizado antes, no consume tu cuota)",
+  },
   upgrade: {
     reasoningLocked: "Actualizá a Pro para ver el motivo completo de esta coincidencia.",
     profileLimitReached: "Tu plan permite {n} perfil(es). Actualizá para agregar más.",

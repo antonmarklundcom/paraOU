@@ -3,8 +3,11 @@ import { env } from "../env.js";
 import type { FetchFn } from "./gemini.js";
 import { batchEmbedContents, generateContent } from "./gemini.js";
 import {
+  buildDocumentAnalysisPrompt,
   buildJudgeUserPrompt,
   buildSummaryUserPrompt,
+  DOCUMENT_ANALYSIS_SCHEMA,
+  DOCUMENT_ANALYSIS_SYSTEM,
   JUDGE_RESPONSE_SCHEMA,
   JUDGE_SYSTEM,
   SUGGEST_CATEGORIES_SCHEMA,
@@ -31,6 +34,13 @@ export const judgeResultSchema = z.object({
 });
 export type JudgeResult = z.infer<typeof judgeResultSchema>;
 
+export const documentAnalysisSchema = z.object({
+  summary: z.string(),
+  requirements: z.array(z.object({ item: z.string(), note: z.string().optional() })).max(20),
+  warnings: z.array(z.string()).max(10),
+});
+export type DocumentAnalysisResult = z.infer<typeof documentAnalysisSchema>;
+
 export interface AiProvider {
   readonly name: string;
   /** Embed texts for pgvector storage. Dim = env.EMBEDDING_DIM. */
@@ -44,8 +54,9 @@ export interface AiProvider {
     description: string,
     options: { code: string; name: string }[],
   ): Promise<string[]>;
-  /** Premium pliego analysis — Phase 6+ (docs/04). */
-  analyzeDocument(text: string): Promise<string>;
+  /** Premium pliego analysis (PHASE-6 #4): a requirements checklist extracted
+   * from the tender's PDF text. */
+  analyzeDocument(tenderTitle: string, pdfText: string): Promise<DocumentAnalysisResult>;
 }
 
 /** Parses the model's JSON, tolerating accidental markdown fences. */
@@ -160,8 +171,27 @@ class GeminiProvider implements AiProvider {
     return parsed.categoryCodes.filter((c) => valid.has(c));
   }
 
-  async analyzeDocument(): Promise<string> {
-    throw new Error("analyzeDocument is a Phase 6 feature (docs/04) — not implemented");
+  async analyzeDocument(tenderTitle: string, pdfText: string): Promise<DocumentAnalysisResult> {
+    const model = env.GEMINI_MODEL_ANALYSIS;
+    const res = await generateContent(
+      {
+        model,
+        system: DOCUMENT_ANALYSIS_SYSTEM,
+        user: buildDocumentAnalysisPrompt(tenderTitle, pdfText),
+        responseJsonSchema: DOCUMENT_ANALYSIS_SCHEMA as unknown as Record<string, unknown>,
+        temperature: 0.1,
+        maxOutputTokens: 4096,
+      },
+      this.fetchFn,
+    );
+    await logAiUsage({
+      provider: this.name,
+      model,
+      purpose: "analyze_document",
+      inputTokens: res.inputTokens,
+      outputTokens: res.outputTokens,
+    });
+    return documentAnalysisSchema.parse(JSON.parse(res.text));
   }
 }
 
@@ -184,7 +214,7 @@ class AnthropicProvider implements AiProvider {
   suggestCategories(): Promise<string[]> {
     this.fail();
   }
-  analyzeDocument(): Promise<string> {
+  analyzeDocument(): Promise<DocumentAnalysisResult> {
     this.fail();
   }
 }
