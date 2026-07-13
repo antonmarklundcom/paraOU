@@ -185,6 +185,7 @@ the hand-written pgvector / generated-`tsvector` SQL and would report false drif
 | [docs/05-ux-ui.md](docs/05-ux-ui.md)                         | UX/UI specification for the tender overview and detail pages                           |
 | [docs/06-risks.md](docs/06-risks.md)                         | Known issues, risks, and mitigations                                                   |
 | [docs/07-improvement-ideas.md](docs/07-improvement-ideas.md) | Post-launch roadmap and feature ideas                                                  |
+| [docs/08-launch.md](docs/08-launch.md)                       | Phase 6 launch checklist: VPS setup, Stripe, backups, monitoring, legal                |
 
 ## Build phases (for the coding agent)
 
