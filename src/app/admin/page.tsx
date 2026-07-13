@@ -106,7 +106,9 @@ export default async function AdminPage() {
                   <td className="max-w-[16rem] truncate py-1.5">{u.email}</td>
                   <td>
                     {u.plan}
-                    {u.manualBilling && <span className="ml-1 text-xs text-muted-foreground">(manual)</span>}
+                    {u.manualBilling && (
+                      <span className="ml-1 text-xs text-muted-foreground">(manual)</span>
+                    )}
                   </td>
                   <td className="text-muted-foreground">{u.subscriptionStatus ?? "—"}</td>
                   <td className="text-muted-foreground">

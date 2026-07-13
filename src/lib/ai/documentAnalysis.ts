@@ -122,7 +122,9 @@ export async function analyzeTenderDocument(
     const result: AnalyzeResult = {
       summary: "No se pudo extraer texto de este documento (probablemente escaneado).",
       requirements: [],
-      warnings: ["Documento escaneado sin OCR — no soportado todavía. Revisá el pliego manualmente."],
+      warnings: [
+        "Documento escaneado sin OCR — no soportado todavía. Revisá el pliego manualmente.",
+      ],
       cached: false,
     };
     await prisma.documentAnalysis.create({

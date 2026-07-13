@@ -224,7 +224,8 @@ const es = {
     faq1a:
       "Sí. Todas las licitaciones públicas son datos abiertos de la DNCP — nunca las escondemos ni las demoramos. Lo que cambia entre planes es la inteligencia: cuántas coincidencias con explicación completa ves por día, la velocidad de las alertas, y el análisis de pliegos con IA.",
     faq2q: "¿Puedo cancelar cuando quiera?",
-    faq2a: "Sí, desde “Administrar suscripción”. Seguís con acceso hasta el fin del período pagado.",
+    faq2a:
+      "Sí, desde “Administrar suscripción”. Seguís con acceso hasta el fin del período pagado.",
     faq3q: "¿Aceptan transferencia bancaria?",
     faq3a: "Para planes Business y Agencia, sí — escribinos y lo coordinamos manualmente.",
     anchor: "Ganar una sola licitación paga años de suscripción.",

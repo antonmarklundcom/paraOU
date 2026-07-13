@@ -69,7 +69,12 @@ describe.skipIf(!hasDb)("handleStripeWebhook (integration)", () => {
 
   it("rejects a payload with a bad signature", async () => {
     const { rawBody } = signedEvent(
-      subscriptionEvent({ id: "sub_1", customer: "cus_1", status: "active", priceId: "price_pro_monthly" }),
+      subscriptionEvent({
+        id: "sub_1",
+        customer: "cus_1",
+        status: "active",
+        priceId: "price_pro_monthly",
+      }),
     );
     await expect(handleStripeWebhook(rawBody, "t=1,v1=deadbeef")).rejects.toThrow();
   });

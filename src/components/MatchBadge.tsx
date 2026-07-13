@@ -38,7 +38,12 @@ export function MatchBadge({
   if (!reasoningVisible) {
     return (
       <span className="inline-flex flex-col items-end">
-        <span className={cn("inline-flex items-center gap-1 text-xs font-semibold", scoreTone(match.score))}>
+        <span
+          className={cn(
+            "inline-flex items-center gap-1 text-xs font-semibold",
+            scoreTone(match.score),
+          )}
+        >
           {match.score}% {t.badge}
         </span>
         <Link

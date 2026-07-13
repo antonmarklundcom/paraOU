@@ -1,7 +1,13 @@
 import { prisma } from "../db.js";
 import { logger } from "../log.js";
 import { env } from "../env.js";
-import { stripe, priceIdFor, planForPriceId, type BillablePlan, type BillingCycle } from "../stripe.js";
+import {
+  stripe,
+  priceIdFor,
+  planForPriceId,
+  type BillablePlan,
+  type BillingCycle,
+} from "../stripe.js";
 import { ApiError } from "./http.js";
 
 /**
@@ -21,8 +27,7 @@ export async function createCheckoutSession(
   const user = await prisma.user.findUniqueOrThrow({ where: { id: userId } });
 
   const customerId =
-    user.stripeCustomerId ??
-    (await stripe().customers.create({ email, metadata: { userId } })).id;
+    user.stripeCustomerId ?? (await stripe().customers.create({ email, metadata: { userId } })).id;
   if (!user.stripeCustomerId) {
     await prisma.user.update({ where: { id: userId }, data: { stripeCustomerId: customerId } });
   }
