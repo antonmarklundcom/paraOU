@@ -1,15 +1,18 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { signOut } from "next-auth/react";
 import { dict } from "@/lib/i18n";
 import { cn } from "@/lib/cn";
+import { limitsFor } from "@/lib/plan";
 
 interface Prefs {
   email: string;
   locale: "es" | "en";
   alertChannel: "EMAIL" | "NONE";
   alertFrequency: "INSTANT" | "DAILY" | "WEEKLY";
+  plan: "FREE" | "PRO" | "BUSINESS" | "AGENCY";
 }
 
 /** Account settings + delete (PHASE-5 #6): locale, alert channel & frequency. */
@@ -19,6 +22,7 @@ export function AccountForm() {
   const [saved, setSaved] = useState(false);
   const [confirmWord, setConfirmWord] = useState("");
   const [deleting, setDeleting] = useState(false);
+  const [portalLoading, setPortalLoading] = useState(false);
 
   useEffect(() => {
     void fetch("/api/account")
@@ -41,6 +45,18 @@ export function AccountForm() {
     if (res.ok) setSaved(true);
   }
 
+  async function openPortal() {
+    setPortalLoading(true);
+    try {
+      const res = await fetch("/api/billing/portal", { method: "POST" });
+      if (res.ok) {
+        window.location.href = (await res.json()).data.url;
+      }
+    } finally {
+      setPortalLoading(false);
+    }
+  }
+
   async function deleteAccount() {
     setDeleting(true);
     const res = await fetch("/api/account", { method: "DELETE" });
@@ -54,11 +70,33 @@ export function AccountForm() {
   if (!prefs) return <p className="text-sm text-muted-foreground">…</p>;
 
   const select = "rounded-md border border-border bg-background px-3 py-2 text-sm";
+  const allowedFrequencies = limitsFor(prefs.plan).allowedAlertFrequencies;
 
   return (
     <div className="space-y-6">
       <div className="space-y-4 rounded-lg border border-border p-4">
-        <p className="text-sm text-muted-foreground">{prefs.email}</p>
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <p className="text-sm text-muted-foreground">{prefs.email}</p>
+          <span className="flex items-center gap-2">
+            <span className="rounded-full bg-accent px-2.5 py-1 text-xs font-semibold">
+              {prefs.plan}
+            </span>
+            {prefs.plan === "FREE" ? (
+              <Link href="/precios" className="text-xs text-primary hover:underline">
+                {dict().upgrade.cta}
+              </Link>
+            ) : (
+              <button
+                type="button"
+                onClick={() => void openPortal()}
+                disabled={portalLoading}
+                className="text-xs text-primary hover:underline"
+              >
+                {dict().pricing.manage}
+              </button>
+            )}
+          </span>
+        </div>
 
         <label className="block">
           <span className="mb-1 block text-sm font-medium">{t.locale}</span>
@@ -95,10 +133,22 @@ export function AccountForm() {
               setPrefs({ ...prefs, alertFrequency: e.target.value as Prefs["alertFrequency"] })
             }
           >
-            <option value="INSTANT">{t.alertFrequencyInstant}</option>
-            <option value="DAILY">{t.alertFrequencyDaily}</option>
+            <option value="INSTANT" disabled={!allowedFrequencies.includes("INSTANT")}>
+              {t.alertFrequencyInstant}
+            </option>
+            <option value="DAILY" disabled={!allowedFrequencies.includes("DAILY")}>
+              {t.alertFrequencyDaily}
+            </option>
             <option value="WEEKLY">{t.alertFrequencyWeekly}</option>
           </select>
+          {allowedFrequencies.length < 3 && (
+            <p className="mt-1 text-xs text-muted-foreground">
+              {dict().upgrade.alertFrequencyLocked}{" "}
+              <Link href="/precios" className="text-primary hover:underline">
+                {dict().upgrade.cta}
+              </Link>
+            </p>
+          )}
         </label>
 
         <button
