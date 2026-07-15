@@ -21,6 +21,7 @@ export const GET = handle(async (req) => {
     locale: session.user.locale,
     alertChannel: session.user.alertChannel,
     alertFrequency: session.user.alertFrequency,
+    plan: session.user.plan,
   });
 });
 

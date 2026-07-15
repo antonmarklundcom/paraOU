@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { dict } from "@/lib/i18n";
 import { cn } from "@/lib/cn";
 
@@ -22,11 +23,39 @@ export interface MatchInfo {
   cautions: string[];
 }
 
-export function MatchBadge({ match }: { match?: MatchInfo | null }) {
+export function MatchBadge({
+  match,
+  reasoningVisible = true,
+}: {
+  match?: MatchInfo | null;
+  reasoningVisible?: boolean;
+}) {
   const [open, setOpen] = useState(false);
   if (!match) return null;
   const t = dict().match;
-  const expandable = match.fitReasons.length > 0 || match.cautions.length > 0;
+  const expandable = reasoningVisible && (match.fitReasons.length > 0 || match.cautions.length > 0);
+
+  if (!reasoningVisible) {
+    return (
+      <span className="inline-flex flex-col items-end">
+        <span
+          className={cn(
+            "inline-flex items-center gap-1 text-xs font-semibold",
+            scoreTone(match.score),
+          )}
+        >
+          {match.score}% {t.badge}
+        </span>
+        <Link
+          href="/precios"
+          className="mt-0.5 text-[11px] text-primary underline decoration-dotted hover:no-underline"
+        >
+          🔒 {dict().upgrade.reasoningLocked}
+        </Link>
+      </span>
+    );
+  }
+
   return (
     <span className="inline-flex flex-col items-end">
       <button

@@ -74,6 +74,24 @@ const schema = z.object({
   // Alert engine (worker job after each sync + matching run).
   ALERT_MIN_MATCH_SCORE: z.coerce.number().int().min(0).max(100).default(70),
   ALERT_DIGEST_MAX_ITEMS: z.coerce.number().int().positive().default(10),
+
+  // ── Billing (Phase 6) ────────────────────────────────────────────────
+  // Stripe. Optional so the app builds without a Stripe account; /precios and
+  // checkout routes degrade to "contact us" when unset (CLAUDE.md rule 2).
+  STRIPE_SECRET_KEY: z.string().optional(),
+  STRIPE_WEBHOOK_SECRET: z.string().optional(),
+  // Price IDs created by the owner in the Stripe dashboard (monthly; annual is
+  // "2 months free" per docs/00, i.e. price = monthly * 10 — set up as a
+  // separate Stripe Price so Stripe handles proration/renewal itself).
+  STRIPE_PRICE_PRO_MONTHLY: z.string().optional(),
+  STRIPE_PRICE_PRO_ANNUAL: z.string().optional(),
+  STRIPE_PRICE_BUSINESS_MONTHLY: z.string().optional(),
+  STRIPE_PRICE_BUSINESS_ANNUAL: z.string().optional(),
+  // Business-tier document analysis quota (PHASE-6 #4).
+  DOCUMENT_ANALYSIS_MONTHLY_QUOTA: z.coerce.number().int().positive().default(30),
+  // Comma-separated allowlist for /admin (replaces the Phase 4 ADMIN_KEY query
+  // param with real session-based access control now that accounts exist).
+  ADMIN_EMAILS: z.string().default(""),
 });
 
 export type Env = z.infer<typeof schema>;
@@ -118,4 +136,18 @@ export function emailConfigured(): boolean {
 /** True when Google OAuth creds are present (optional per docs/05). */
 export function googleAuthConfigured(): boolean {
   return Boolean(env.GOOGLE_CLIENT_ID && env.GOOGLE_CLIENT_SECRET);
+}
+
+/** True when Stripe is configured; false => checkout/portal show "contact us". */
+export function stripeConfigured(): boolean {
+  return Boolean(env.STRIPE_SECRET_KEY && env.STRIPE_WEBHOOK_SECRET);
+}
+
+/** Session email allowlist for /admin (Phase 6). */
+export function isAdminEmail(email: string | null | undefined): boolean {
+  if (!email) return false;
+  const allowlist = env.ADMIN_EMAILS.split(",")
+    .map((e) => e.trim().toLowerCase())
+    .filter(Boolean);
+  return allowlist.includes(email.toLowerCase());
 }

@@ -8,7 +8,7 @@ actually win, ranked, with a plain-language explanation."
 
 ## Status
 
-🚧 **Phases 1–5 complete.** Phase 1: DNCP client, Postgres schema, sync worker,
+🚧 **Phases 1–6 complete.** Phase 1: DNCP client, Postgres schema, sync worker,
 backfill CLI (running on synthetic OCDS fixtures — the build environment couldn't
 reach `contrataciones.gov.py`, docs/06 risk T4; live API paths/shapes still need
 verification, see [owner checklist](#before-phase-2-owner-must-verify)). Phase 2: the
@@ -17,7 +17,10 @@ company profiles + the 3-stage AI match funnel on Gemini (see
 [owner checklist](#before-phase-5--owner-must-verify) — live AI verification is
 pending a billing top-up). Phase 5: accounts (Auth.js magic link + optional
 Google), saved searches, and the alert digest engine (see
-[owner checklist](#before-phase-6--owner-must-verify)).
+[owner checklist](#before-phase-6--owner-must-verify)). Phase 6: plan gating,
+Stripe billing, Business-tier document analysis, `/admin`, and the launch
+checklist — see [docs/08-launch.md](docs/08-launch.md) and the
+[owner checklist](#launching-owner-must-do) below before going live.
 
 | Phase                                    | Status                                                                                |
 | ---------------------------------------- | ------------------------------------------------------------------------------------- |
@@ -26,7 +29,7 @@ Google), saved searches, and the alert digest engine (see
 | 3 — Frontend (overview, detail, SEO)     | ✅ built & tested                                                                     |
 | 4 — AI matching (profiles, funnel, feed) | ✅ built & tested (recorded AI responses — live calls pending billing, see checklist) |
 | 5 — Accounts & alerts                    | ✅ built & tested (dev email transport — live send pending a Resend key)              |
-| 6 — Monetization                         | ⬜ not started                                                                        |
+| 6 — Monetization (plans, Stripe, launch) | ✅ built & tested (test-mode Stripe fixtures — no live account connected yet)         |
 
 ### API (Phase 2)
 
@@ -105,12 +108,51 @@ Per docs/03/05: Auth.js v5 with database sessions.
   ever emailed once), and sends a React Email digest (max
   `ALERT_DIGEST_MAX_ITEMS`, deadline-first, `List-Unsubscribe` header). Frequency
   tiers run on separate cron schedules: `INSTANT` on every 30-min sync tick,
-  `DAILY` at 08:00 America/Asuncion, `WEEKLY` Mondays 08:00. Plan-based gating
-  (docs/04: "FREE: none or weekly teaser") is a Phase 6 hook — every plan
-  currently gets its chosen frequency, since billing doesn't exist yet.
+  `DAILY` at 08:00 America/Asuncion, `WEEKLY` Mondays 08:00. Frequency choice is
+  plan-gated as of Phase 6 (`src/lib/plan.ts`) — FREE can only pick `WEEKLY`.
 - **`/cuenta`**: locale, alert channel/frequency, GDPR-style delete (cascades
   through profiles/matches/saved searches/follows/alert logs via the schema's
   `onDelete: Cascade`).
+
+### Plans & billing (Phase 6)
+
+`src/lib/plan.ts` is the single source of truth for what each tier unlocks —
+**data is never gated** (every tender is real-time and free to browse; better
+for SEO/trust, and DNCP data is public anyway), only AI depth and alert speed
+are paywalled:
+
+|                                       | FREE      | PRO                  | BUSINESS             | AGENCY               |
+| ------------------------------------- | --------- | -------------------- | -------------------- | -------------------- |
+| Company profiles                      | 1         | 1                    | 3                    | unlimited            |
+| Full match reasoning                  | top 3/day | unlimited            | unlimited            | unlimited            |
+| Alert frequency                       | weekly    | instant/daily/weekly | instant/daily/weekly | instant/daily/weekly |
+| Document analysis ("Analizar pliego") | –         | –                    | ✓ (quota'd/mo)       | ✓                    |
+
+- **Stripe** (`src/lib/stripe.ts`, `src/lib/api/billing.ts`): Checkout for
+  PRO/BUSINESS × monthly/annual, customer portal for cancel/card-change, a
+  signature-verified webhook (`checkout.session.completed`,
+  `customer.subscription.updated/deleted`) that writes `User.plan` —
+  idempotent, and a lapsed/canceled subscription reads as FREE even if the
+  stored plan is stale (`effectivePlan()`). `manualBilling` flag on `User`
+  supports B2B bank-transfer deals (docs/06 risk B4), bypassing Stripe state.
+- **`/precios`**: 4-tier cards, monthly/annual toggle, Checkout kickoff;
+  degrades to a `mailto:` CTA when Stripe isn't configured.
+- **Gates hit a contextual upgrade prompt, never a dead end**: a blurred match
+  reasoning card links to `/precios`; `/cuenta`'s alert-frequency select
+  disables options the plan doesn't allow with an upgrade link; a 4th profile
+  attempt (FREE/PRO) or an analysis past quota (BUSINESS) returns a clear
+  `PLAN_LIMIT`/`QUOTA_EXCEEDED` error the UI surfaces as a prompt, not a crash.
+- **Document analysis** (`src/lib/ai/documentAnalysis.ts`, Business tier):
+  fetches the tender's PDF, extracts text (`pdf-parse`; scanned/no-OCR PDFs
+  degrade to a "not supported yet" result), runs `gemini-2.5-pro` for a
+  requirements checklist, caches forever per (tender, document) so re-viewing
+  never re-bills the monthly quota (`DOCUMENT_ANALYSIS_MONTHLY_QUOTA`).
+- **`/admin`** (`ADMIN_EMAILS` session allowlist): plan distribution, recent
+  users, manual plan override (sets `manualBilling`), links to the Phase 4
+  `/admin/ai` cost dashboard, ingestion status, alerts-sent count.
+- **Launch**: `docker-compose.prod.yml` (Caddy automatic HTTPS + a one-shot
+  migration runner) and [docs/08-launch.md](docs/08-launch.md) — the full
+  step-by-step for the Hostinger VPS.
 
 ### Running locally (Phase 1)
 
@@ -165,9 +207,29 @@ Without `DNCP_*` secrets the worker/backfill ingest the fixtures in
    Auth.js; the app falls back to an insecure dev default without it.
 3. Optional: register a Google OAuth app and set `GOOGLE_CLIENT_ID`/`_SECRET` if
    you want the Google sign-in button (magic link works without it).
-4. Decide the FREE-plan alert policy (docs/04 says "none or weekly teaser") once
-   Phase 6 billing exists — `sendDigestForUser` currently honors every user's
-   chosen `alertFrequency` regardless of plan.
+4. ~~Decide the FREE-plan alert policy~~ — done in Phase 6: FREE is capped to
+   `WEEKLY` alerts by `src/lib/plan.ts`, enforced both client-side (disabled
+   select) and server-side (`updateAccountPrefs` rejects a disallowed choice).
+
+### Launching (owner must do)
+
+Everything Phase 6 could build without your accounts is built and tested
+(Stripe in test-mode fixtures, document analysis against a mocked provider).
+Before real users/money touch this:
+
+1. **Stripe**: create the Pro/Business Products + monthly/annual Prices, copy
+   the 4 Price ids and your secret/webhook-signing keys into `.env`. Test a
+   full subscribe → `/cuenta` shows the new plan → `/admin` shows it too,
+   with Stripe **test** keys before switching to live ones.
+   [docs/08-launch.md](docs/08-launch.md) step 5 has the exact dashboard steps.
+2. **Provision the Hostinger VPS** and run through
+   [docs/08-launch.md](docs/08-launch.md) top to bottom — it starts with the
+   DNCP-reachability de-risk test (still unverified — see item 4 above), then
+   Docker Compose bring-up, Resend, backfill + spot-check, backups (with an
+   actual restore test), uptime/error monitoring, analytics, and legal pages.
+3. Set `ADMIN_EMAILS` to your real email(s) so `/admin` isn't locked out.
+4. Everything else from the earlier per-phase checklists above still applies
+   (Gemini billing, Resend key, `AUTH_SECRET`, DNCP reachability).
 
 CI note: the migration gate uses `prisma migrate deploy` + `prisma migrate status`
 rather than a strict `prisma migrate diff --exit-code`, because Prisma cannot model
@@ -185,6 +247,7 @@ the hand-written pgvector / generated-`tsvector` SQL and would report false drif
 | [docs/05-ux-ui.md](docs/05-ux-ui.md)                         | UX/UI specification for the tender overview and detail pages                           |
 | [docs/06-risks.md](docs/06-risks.md)                         | Known issues, risks, and mitigations                                                   |
 | [docs/07-improvement-ideas.md](docs/07-improvement-ideas.md) | Post-launch roadmap and feature ideas                                                  |
+| [docs/08-launch.md](docs/08-launch.md)                       | Phase 6 launch checklist: VPS setup, Stripe, backups, monitoring, legal                |
 
 ## Build phases (for the coding agent)
 

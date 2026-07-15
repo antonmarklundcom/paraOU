@@ -1,0 +1,10 @@
+# Caddy reverse proxy + automatic TLS (PHASE-6 #6). Replace the placeholder
+# domain with your real one and set an email for Let's Encrypt renewal notices.
+{
+	email you@example.com
+}
+
+paraou.example.com {
+	reverse_proxy web:3000
+	encode gzip
+}

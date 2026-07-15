@@ -1,0 +1,63 @@
+# Production overlay for the Hostinger VPS (PHASE-6 #6 launch checklist).
+# Usage:
+#   docker compose -f docker-compose.yml -f docker-compose.prod.yml \
+#     --profile app up -d --build
+#
+# Adds: Caddy (automatic HTTPS via Let's Encrypt) and a one-shot migration
+# runner. NOTE: the base docker-compose.yml publishes db on host port 5432 for
+# local dev convenience — on the VPS, either delete that `ports:` entry from
+# docker-compose.yml directly, or block 5432 at the VPS firewall (ufw deny 5432).
+# `web`/`worker`/`migrate` reach `db` over the Docker network regardless.
+
+services:
+  db:
+    restart: always
+
+  migrate:
+    profiles: ["app"]
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command: ["node_modules/.bin/prisma", "migrate", "deploy"]
+    environment:
+      DATABASE_URL: postgresql://paraou:paraou@db:5432/paraou
+    env_file:
+      - .env
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: "no"
+
+  web:
+    restart: always
+    depends_on:
+      db:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+
+  worker:
+    restart: always
+    depends_on:
+      db:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+
+  caddy:
+    profiles: ["app"]
+    image: caddy:2-alpine
+    restart: always
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - web
+
+volumes:
+  caddy_data:
+  caddy_config:

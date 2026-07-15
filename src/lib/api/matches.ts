@@ -1,6 +1,7 @@
-import type { MatchAction } from "@prisma/client";
+import type { MatchAction, Plan } from "@prisma/client";
 import { prisma } from "../db.js";
 import { SHOW_THRESHOLD } from "../ai/match.js";
+import { limitsFor } from "../plan.js";
 import { ApiError } from "./http.js";
 
 /**
@@ -26,6 +27,10 @@ export interface MatchFeedItem {
   verdict: string;
   fitReasons: string[];
   cautions: string[];
+  /** False when the plan's fullReasoningPerDay cap hides fitReasons/cautions
+   * (PHASE-6 #1: "matches visible but reasoning blurred beyond top 3/day"). The
+   * score/verdict always show — only the AI's written-out reasoning is gated. */
+  reasoningVisible: boolean;
   userAction: MatchAction;
   matchedAt: string;
 }
@@ -38,7 +43,8 @@ export interface MatchFeed {
 
 const CLOSING_SOON_DAYS = 7;
 
-export async function getMatchFeed(profileId: string): Promise<MatchFeed> {
+export async function getMatchFeed(profileId: string, plan: Plan = "FREE"): Promise<MatchFeed> {
+  const fullReasoningLimit = limitsFor(plan).fullReasoningPerDay;
   const rows = await prisma.match.findMany({
     where: {
       profileId,
@@ -67,8 +73,11 @@ export async function getMatchFeed(profileId: string): Promise<MatchFeed> {
   });
 
   const now = Date.now();
-  const items: MatchFeedItem[] = rows.map((m) => {
+  // rows are score-desc; the plan's cap applies to the best matches first, since
+  // those are the ones worth paying to fully understand.
+  const items: MatchFeedItem[] = rows.map((m, i) => {
     const deadlineAt = m.tender.deadlineAt;
+    const reasoningVisible = i < fullReasoningLimit;
     return {
       tenderId: m.tender.id,
       ocid: m.tender.ocid,
@@ -86,8 +95,9 @@ export async function getMatchFeed(profileId: string): Promise<MatchFeed> {
         : null,
       score: m.score,
       verdict: m.verdict,
-      fitReasons: m.fitReasons,
-      cautions: m.cautions,
+      fitReasons: reasoningVisible ? m.fitReasons : [],
+      cautions: reasoningVisible ? m.cautions : [],
+      reasoningVisible,
       userAction: m.userAction,
       matchedAt: m.createdAt.toISOString(),
     };

@@ -1,7 +1,7 @@
 // GEMINI_API_KEY is set via vitest.config.ts `test.env` (guaranteed before any
 // module in this file's graph loads — a top-of-file process.env assignment here
 // would run too late, since import statements are hoisted above it).
-import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { prisma } from "../../db.js";
 import type { JudgeResult } from "../provider.js";
 
@@ -279,6 +279,14 @@ describe.skipIf(!hasDb)("match funnel (integration)", () => {
       expect(run.budgetPaused).toBe(true);
       expect(run.judged).toBe(0);
       expect(judgeCalls).toHaveLength(0); // no LLM calls once the budget is blown
+    });
+
+    // Other integration test files share this Postgres and run in the same
+    // process (fileParallelism: false) — an unbounded AiUsage row here would
+    // otherwise trip every other file's budgetExceeded() check for the rest
+    // of the run.
+    afterEach(async () => {
+      await prisma.aiUsage.deleteMany();
     });
   });
 });
