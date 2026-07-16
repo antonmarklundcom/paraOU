@@ -82,7 +82,7 @@ export function effectivePlan(user: {
 
 export const PRICING = {
   FREE: { usd: 0, label: "Gratis" },
-  PRO: { usdMin: 29, usdMax: 49, label: "Pro" },
-  BUSINESS: { usdMin: 99, usdMax: 149, label: "Business" },
-  AGENCY: { usdMin: 299, label: "Agencia / API" },
+  PRO: { usd: 29, label: "Pro" },
+  BUSINESS: { usd: 99, label: "Business" },
+  AGENCY: { usd: 299, label: "Agencia / API" },
 } as const;

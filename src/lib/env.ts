@@ -92,6 +92,12 @@ const schema = z.object({
   // Comma-separated allowlist for /admin (replaces the Phase 4 ADMIN_KEY query
   // param with real session-based access control now that accounts exist).
   ADMIN_EMAILS: z.string().default(""),
+
+  // ── Launch ops (docs/08 #9) ─────────────────────────────────────────
+  // Cookieless analytics (Plausible/Umami). Optional — script is omitted
+  // entirely when unset, no cookie-consent banner needed either way.
+  NEXT_PUBLIC_PLAUSIBLE_DOMAIN: z.string().optional(),
+  NEXT_PUBLIC_PLAUSIBLE_SCRIPT_URL: z.string().url().default("https://plausible.io/js/script.js"),
 });
 
 export type Env = z.infer<typeof schema>;

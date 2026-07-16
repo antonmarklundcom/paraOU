@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import "./globals.css";
 import { dict } from "@/lib/i18n";
+import { env } from "@/lib/env";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { AuthProvider } from "@/components/AuthProvider";
 import { AuthHeader } from "@/components/AuthHeader";
@@ -22,6 +23,13 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
     <html lang="es" suppressHydrationWarning>
       <head>
         <script dangerouslySetInnerHTML={{ __html: themeScript }} />
+        {env.NEXT_PUBLIC_PLAUSIBLE_DOMAIN && (
+          <script
+            defer
+            data-domain={env.NEXT_PUBLIC_PLAUSIBLE_DOMAIN}
+            src={env.NEXT_PUBLIC_PLAUSIBLE_SCRIPT_URL}
+          />
+        )}
       </head>
       <body className="min-h-screen">
         <AuthProvider>
@@ -48,8 +56,16 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
           </header>
           {children}
           <footer className="mt-16 border-t border-border">
-            <div className="mx-auto max-w-6xl px-4 py-6 text-xs text-muted-foreground">
-              {t.overview.source} · {t.tagline}
+            <div className="mx-auto flex max-w-6xl flex-wrap items-center gap-x-4 gap-y-2 px-4 py-6 text-xs text-muted-foreground">
+              <span>
+                {t.overview.source} · {t.tagline}
+              </span>
+              <Link href="/terminos" className="hover:text-primary">
+                Términos
+              </Link>
+              <Link href="/privacidad" className="hover:text-primary">
+                Privacidad
+              </Link>
             </div>
           </footer>
         </AuthProvider>
