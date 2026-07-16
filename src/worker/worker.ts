@@ -2,8 +2,9 @@ import "dotenv/config";
 import cron from "node-cron";
 import { prisma } from "../lib/db.js";
 import { logger } from "../lib/log.js";
-import { dncpConfigured } from "../lib/env.js";
+import { dncpConfigured, aiConfigured } from "../lib/env.js";
 import { reconcileRecent, syncIncremental } from "./sync.js";
+import { enrichAfterSync } from "./enrich.js";
 
 /**
  * Ingestion worker entry (docs/02, PHASE-1 step 5): a single long-running process
@@ -38,24 +39,52 @@ async function guarded(name: string, fn: () => Promise<unknown>) {
   }
 }
 
+/** Sync, then enrich (embed/summarize/match) — enrich failures are isolated so an
+ * AI hiccup never masks or blocks ingestion (CLAUDE.md rule 6). */
+async function syncAndEnrich() {
+  await syncIncremental(prisma);
+  try {
+    await enrichAfterSync(prisma);
+  } catch (err) {
+    logger.error({ err: err instanceof Error ? err.message : String(err) }, "AI enrichment failed");
+  }
+}
+
 async function start() {
   logger.info(
-    { mode: dncpConfigured() ? "live" : "fixtures", tz: TZ },
+    {
+      mode: dncpConfigured() ? "live" : "fixtures",
+      ai: aiConfigured() ? "gemini" : "mock",
+      tz: TZ,
+    },
     "ParaOU ingestion worker starting",
   );
 
   // Run one incremental sync immediately on boot so a fresh deploy has data.
-  await guarded("startup-sync", () => syncIncremental(prisma));
+  await guarded("startup-sync", syncAndEnrich);
 
   // Every 30 minutes.
-  cron.schedule("*/30 * * * *", () => void guarded("incremental", () => syncIncremental(prisma)), {
+  cron.schedule("*/30 * * * *", () => void guarded("incremental", syncAndEnrich), {
     timezone: TZ,
   });
 
   // Nightly reconciliation at 03:15.
-  cron.schedule("15 3 * * *", () => void guarded("reconcile", () => reconcileRecent(prisma, 3)), {
-    timezone: TZ,
-  });
+  cron.schedule(
+    "15 3 * * *",
+    () =>
+      void guarded("reconcile", async () => {
+        await reconcileRecent(prisma, 3);
+        try {
+          await enrichAfterSync(prisma);
+        } catch (err) {
+          logger.error(
+            { err: err instanceof Error ? err.message : String(err) },
+            "AI enrichment failed",
+          );
+        }
+      }),
+    { timezone: TZ },
+  );
 
   logger.info("cron schedules registered (incremental */30, reconcile 03:15)");
 }

@@ -8,18 +8,20 @@ actually win, ranked, with a plain-language explanation."
 
 ## Status
 
-🚧 **Phases 1–2 complete.** Phase 1: DNCP client, Postgres schema, sync worker,
+🚧 **Phases 1–4 complete.** Phase 1: DNCP client, Postgres schema, sync worker,
 backfill CLI (running on synthetic OCDS fixtures — the build environment couldn't
 reach `contrataciones.gov.py`, docs/06 risk T4; live API paths/shapes still need
 verification, see [owner checklist](#before-phase-2-owner-must-verify)). Phase 2: the
-internal search/filter/sort REST API the frontend will consume.
+internal search/filter/sort REST API. Phase 3: the public frontend. Phase 4: AI
+company matching (running on a deterministic mock provider — no `GEMINI_API_KEY` in
+this environment; see [AI matching](#ai-matching-phase-4) below).
 
 | Phase | Status |
 |---|---|
 | 1 — Ingestion (client, DB, worker) | ✅ built & tested (fixtures mode) |
 | 2 — Internal API (search/filter/sort) | ✅ built & tested |
 | 3 — Frontend (overview, detail, SEO) | ✅ built & tested |
-| 4 — AI matching | ⬜ not started |
+| 4 — AI matching | ✅ built & tested (mock provider — no Gemini key) |
 | 5 — Accounts & alerts | ⬜ not started |
 | 6 — Monetization | ⬜ not started |
 
@@ -55,8 +57,38 @@ Spanish-first public UI (docs/05), SSR for SEO, light + dark, responsive to 360p
 
 Money formatted `es-PY` (compact "Gs. 4,5 mil M"), dates in `America/Asuncion`
 (fixed timezone — no UTC leakage). Run `npm run e2e` for the Playwright golden path
-(browse → filter → detail → download .ics). The AI match badge renders behind
-`NEXT_PUBLIC_SHOW_MATCH_BADGE=1` with mock data (real matching is Phase 4).
+(browse → filter → detail → download .ics). The match badge on `/licitaciones` and
+the `/panel` feed now show real scores from Phase 4 (see below).
+
+### AI matching (Phase 4)
+
+Implements docs/04 end to end: a three-stage funnel (SQL hard filters → pgvector
+semantic recall top-30 → LLM judge) scores every (company profile, open tender)
+pair, cached forever until either side changes.
+
+- **No `GEMINI_API_KEY` in this environment** → the app runs on a deterministic
+  mock provider (`src/lib/ai/mock.ts`, zero cost, zero network calls) so the whole
+  pipeline is testable/demoable offline. Set `GEMINI_API_KEY` in `.env` to switch to
+  real Gemini (`gemini-embedding-001` / `gemini-2.5-flash-lite` / `gemini-2.5-flash`
+  — model ids are env-overridable, see `.env.example`).
+- **`/perfil`** — 3-step company profile wizard (free text → AI-suggested
+  categories → amount/certifications), ends with instant sample matches. No
+  Auth.js yet (Phase 5): profiles are keyed by a random `httpOnly` cookie
+  (`src/lib/anon.ts`), not an account — the *row* still lives in Postgres from the
+  start because the worker's batch pipeline needs something durable to score
+  against.
+- **`/panel`** — feed grouped Nuevos / Cierran pronto / Guardados, save/bid/dismiss
+  wired to `Match.userAction`.
+- **Cost controls**: every AI call is logged to `ai_usage`; `AI_DAILY_BUDGET_USD`
+  pauses Stage 3 (judge/summarize/suggest-categories) once today's spend is met —
+  embeddings are excluded (near-free, needed for basic recall). `GET /api/admin/ai`
+  (gated by `ADMIN_TOKEN` header `x-admin-token`) shows spend + recent match
+  samples.
+- Tender text is always wrapped as `<tender_data>` and explicitly described as
+  untrusted third-party data in the system instruction — prompt-injection hygiene
+  for a field sourced from government-published, third-party-authored text.
+- `npm run ai:enrich` — one-shot embed + summarize + match run (also runs
+  automatically after every worker sync).
 
 ### Running locally (Phase 1)
 
