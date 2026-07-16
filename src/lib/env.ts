@@ -36,6 +36,29 @@ const schema = z.object({
   DEFAULT_PYG_PER_USD: z.coerce.number().positive().default(7300),
   // Per-IP request budget for public API endpoints (protect the free tier).
   API_RATE_LIMIT_PER_MIN: z.coerce.number().positive().default(60),
+
+  // ── AI matching (Phase 4, docs/04) ─────────────────────────────────
+  // Google Gemini is the default provider (owner decision: cost). Anthropic is an
+  // optional drop-in; both are OPTIONAL here so the app builds without secrets — see
+  // dncpConfigured()'s sibling, aiConfigured() below, for the fixtures-mode gate.
+  AI_PROVIDER: z.enum(["gemini", "anthropic"]).default("gemini"),
+  GEMINI_API_KEY: z.string().optional(),
+  ANTHROPIC_API_KEY: z.string().optional(),
+  // pgvector column is sized to this at migration time; changing it requires a new
+  // migration + re-embedding everything (cheap, recomputable from Tender.raw).
+  EMBEDDING_DIM: z.coerce.number().int().positive().default(768),
+  // Model ids are env-overridable so a provider version bump is a config change, not
+  // a code change. Defaults verified against live Gemini API docs on 2026-07-16
+  // (Gemini 2.5 is GA-stable until 2026-10-16; migrate to Gemini 3 before then).
+  GEMINI_EMBED_MODEL: z.string().default("gemini-embedding-001"),
+  GEMINI_JUDGE_MODEL: z.string().default("gemini-2.5-flash-lite"),
+  GEMINI_SUMMARY_MODEL: z.string().default("gemini-2.5-flash"),
+  GEMINI_API_BASE: z.string().url().default("https://generativelanguage.googleapis.com/v1beta"),
+  // Hard daily spend cap (docs/04 cost guardrails): once today's ai_usage total
+  // meets/exceeds this, stage 3 (LLM judge) and summaries pause until UTC midnight.
+  AI_DAILY_BUDGET_USD: z.coerce.number().positive().default(5),
+  // Shared-secret gate for /api/admin/* (no Auth.js until Phase 5).
+  ADMIN_TOKEN: z.string().optional(),
 });
 
 export type Env = z.infer<typeof schema>;
@@ -59,4 +82,14 @@ export const env = loadEnv();
  */
 export function dncpConfigured(): boolean {
   return Boolean(env.DNCP_CONSUMER_KEY && env.DNCP_CONSUMER_SECRET && env.DNCP_REQUEST_TOKEN);
+}
+
+/**
+ * True when the configured AI provider has a real API key. When false, the AI
+ * layer runs on a deterministic mock provider (src/lib/ai/mock.ts) — no network
+ * calls, no cost — so the matching pipeline is fully testable/demoable offline.
+ */
+export function aiConfigured(): boolean {
+  if (env.AI_PROVIDER === "anthropic") return Boolean(env.ANTHROPIC_API_KEY);
+  return Boolean(env.GEMINI_API_KEY);
 }

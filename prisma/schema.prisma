@@ -62,6 +62,7 @@ model Tender {
   buyer  Buyer?        @relation(fields: [buyerId], references: [id])
   awards Award[]
   events TenderEvent[]
+  matches Match[]
 
   @@index([status, deadlineAt])
   @@index([publishedAt])
@@ -131,4 +132,82 @@ model ExchangeRate {
   date      DateTime @id @db.Date
   pygPerUsd Decimal  @db.Decimal(14, 4)
   createdAt DateTime @default(now())
+}
+
+// ─── Phase 4: AI matching (docs/04) ─────────────────────────────────────────
+
+enum MatchAction {
+  NONE
+  SAVED
+  BIDDING
+  DISMISSED
+}
+
+model CompanyProfile {
+  id      String  @id @default(cuid())
+  // No Auth.js yet (Phase 5): a browser-generated token identifies an anonymous
+  // profile so the worker's batch pipeline has something durable to score against.
+  // `userId` is filled in when Phase 5 migrates the profile to a real account.
+  anonId  String? @unique
+  userId  String?
+  name    String
+  description     String // free text; drives the embedding
+  categoryCodes   String[]
+  keywords        String[]
+  excludeKeywords String[]
+  departments     String[]
+  amountMin       Decimal? @db.Decimal(20, 4)
+  amountMax       Decimal? @db.Decimal(20, 4)
+  certifications  String[]
+
+  // Managed via raw migration SQL (see prisma/migrations/*_init comment):
+  embedding Unsupported("vector(768)")?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  matches Match[]
+
+  @@index([userId])
+}
+
+model Match {
+  id        String @id @default(cuid())
+  profileId String
+  tenderId  String
+  score     Int // 0-100
+  verdict   String // strong|possible|weak|no
+  reasoning String // LLM explanation, user-facing, es-PY
+  cautions  String[]
+
+  userAction MatchAction @default(NONE) // north-star metric (docs/03)
+
+  // Cache key: skip re-scoring while both snapshots still match the live rows
+  // (docs/04: "cache forever per profile-version, tender-version").
+  profileVersion DateTime
+  tenderVersion  DateTime
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  profile CompanyProfile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  tender  Tender         @relation(fields: [tenderId], references: [id], onDelete: Cascade)
+
+  @@unique([profileId, tenderId])
+  @@index([profileId, score])
+  @@index([tenderId])
+}
+
+model AiUsage {
+  id               String   @id @default(cuid())
+  provider         String // gemini | anthropic | mock
+  model            String
+  purpose          String // embed_tender | embed_profile | judge_match | summarize | suggest_categories
+  promptTokens     Int?
+  completionTokens Int?
+  estCostUsd       Decimal  @db.Decimal(10, 6)
+  createdAt        DateTime @default(now())
+
+  @@index([createdAt])
+  @@index([purpose, createdAt])
 }
