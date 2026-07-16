@@ -5,6 +5,9 @@ import { ingestionStatus } from "@/lib/api/status";
 import { getPygPerUsd } from "@/lib/money";
 import { dict } from "@/lib/i18n";
 import { serialize, type RawParams } from "@/lib/urlParams";
+import { readAnonId } from "@/lib/anon";
+import { getProfileByAnonId } from "@/lib/api/profile";
+import { getMatchesForOcids } from "@/lib/api/matches";
 import { FilterRail, SortControl, ActiveChips } from "@/components/overview";
 import { TenderList } from "@/components/TenderList";
 
@@ -28,12 +31,25 @@ export default async function LicitacionesPage({
   const parsed = tenderQuerySchema.safeParse(raw);
   const query = parsed.success ? parsed.data : tenderQuerySchema.parse({});
 
-  const [result, options, usdRate, status] = await Promise.all([
+  const [result, options, usdRate, status, anonId] = await Promise.all([
     searchTenders(query),
     getFilterOptions(),
     getPygPerUsd(),
     ingestionStatus(),
+    readAnonId(),
   ]);
+
+  // Phase 4: badge cards with real match scores when the visitor has a profile.
+  const initialMatches = anonId
+    ? await getProfileByAnonId(anonId).then((p) =>
+        p
+          ? getMatchesForOcids(
+              p.id,
+              result.items.map((i) => i.ocid),
+            )
+          : {},
+      )
+    : {};
 
   const count = result.totalEstimate + (result.totalCapped ? "+" : "");
   const noun = result.totalEstimate === 1 ? t.overview.resultsOne : t.overview.resultsMany;
@@ -81,6 +97,7 @@ export default async function LicitacionesPage({
           <TenderList
             initialItems={result.items}
             initialCursor={result.nextCursor}
+            initialMatches={initialMatches}
             queryString={qs}
             usdRate={usdRate}
           />
