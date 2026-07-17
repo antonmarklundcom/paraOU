@@ -1,7 +1,6 @@
 import { z } from "zod";
 import { handle, ok, parseQuery } from "@/lib/api/http";
-import { readAnonId } from "@/lib/anon";
-import { getProfileByAnonId } from "@/lib/api/profile";
+import { getCurrentProfile } from "@/lib/identity";
 import { getMatchesForOcids } from "@/lib/api/matches";
 
 export const runtime = "nodejs";
@@ -16,9 +15,7 @@ const schema = z.object({
  * client-side "load more". */
 export const GET = handle(async (req) => {
   const { ocid } = parseQuery(req.url, schema);
-  const anonId = await readAnonId();
-  if (!anonId) return ok({});
-  const profile = await getProfileByAnonId(anonId);
+  const { profile } = await getCurrentProfile();
   if (!profile) return ok({});
   return ok(await getMatchesForOcids(profile.id, ocid));
 });

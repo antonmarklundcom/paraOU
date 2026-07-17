@@ -1,15 +1,12 @@
 import { handle, ok, fail } from "@/lib/api/http";
-import { readAnonId } from "@/lib/anon";
-import { getProfileByAnonId } from "@/lib/api/profile";
+import { getCurrentProfile } from "@/lib/identity";
 import { matchActionSchema, setMatchAction } from "@/lib/api/matches";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 export const POST = handle<{ ocid: string }>(async (req, ctx) => {
-  const anonId = await readAnonId();
-  if (!anonId) return fail(404, "NO_PROFILE", "No profile for this browser yet");
-  const profile = await getProfileByAnonId(anonId);
+  const { profile } = await getCurrentProfile();
   if (!profile) return fail(404, "NO_PROFILE", "No profile for this browser yet");
 
   const body = matchActionSchema.safeParse(await req.json());

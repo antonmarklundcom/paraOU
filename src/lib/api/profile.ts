@@ -1,7 +1,6 @@
 import { z } from "zod";
 import { Prisma } from "@prisma/client";
 import { prisma } from "../db.js";
-import { ApiError } from "./http.js";
 import { embedAndStoreProfile } from "../ai/embeddings.js";
 import { suggestCategories as callSuggestCategories } from "../ai/provider.js";
 import { judgeAndCachePair, stage1HardFilters, stage2SemanticRecall } from "../ai/matching.js";
@@ -24,9 +23,20 @@ export async function getProfileByAnonId(anonId: string) {
   return prisma.companyProfile.findUnique({ where: { anonId } });
 }
 
-/** Create or update the profile for this anon id, then (re-)embed it — small,
- * bounded, user-initiated action, not a per-list render (CLAUDE.md rule 6). */
-export async function upsertProfile(anonId: string, input: ProfileInput) {
+/**
+ * Create or update a profile, then (re-)embed it — small, bounded, user-initiated
+ * action, not a per-list render (CLAUDE.md rule 6).
+ *
+ * `identity.existingId` updates that exact row (the caller already resolved it via
+ * getCurrentProfile()); otherwise a new profile is created keyed by whichever of
+ * `userId`/`anonId` identity.js resolved for this request (signed-in users get
+ * `userId` directly — they may never have carried an anon cookie, e.g. Google
+ * sign-in on a fresh browser).
+ */
+export async function upsertProfile(
+  identity: { existingId?: string; userId?: string | null; anonId?: string | null },
+  input: ProfileInput,
+) {
   const data = {
     name: input.name,
     description: input.description,
@@ -38,11 +48,13 @@ export async function upsertProfile(anonId: string, input: ProfileInput) {
     amountMax: input.amountMax ?? null,
     certifications: input.certifications,
   };
-  const profile = await prisma.companyProfile.upsert({
-    where: { anonId },
-    create: { anonId, ...data },
-    update: data,
-  });
+
+  const profile = identity.existingId
+    ? await prisma.companyProfile.update({ where: { id: identity.existingId }, data })
+    : await prisma.companyProfile.create({
+        data: { ...data, userId: identity.userId ?? null, anonId: identity.anonId ?? null },
+      });
+
   await embedAndStoreProfile(profile.id);
   return prisma.companyProfile.findUniqueOrThrow({ where: { id: profile.id } });
 }
@@ -103,8 +115,4 @@ export async function sampleMatches(profileId: string, count = 5) {
   }
 
   return out.sort((a, b) => b.score - a.score);
-}
-
-export function requireAnonProfile(anonId: string | null) {
-  if (!anonId) throw new ApiError(404, "NO_PROFILE", "No profile for this browser yet");
 }
