@@ -22,6 +22,7 @@
     "sync:once": "tsx src/worker/runSyncOnce.ts",
     "backfill": "tsx src/worker/backfill.ts",
     "ai:enrich": "tsx src/worker/enrichOnce.ts",
+    "alerts:once": "tsx src/worker/alertsOnce.ts",
     "prisma:migrate": "prisma migrate dev",
     "prisma:deploy": "prisma migrate deploy",
     "prisma:studio": "prisma studio",
@@ -31,8 +32,10 @@
     "seed": "tsx prisma/seed.ts"
   },
   "dependencies": {
+    "@auth/prisma-adapter": "^2.11.2",
     "@prisma/client": "^6.2.1",
     "next": "^15.1.4",
+    "next-auth": "^5.0.0-beta.31",
     "node-cron": "^3.0.3",
     "pino": "^9.6.0",
     "react": "^19.0.0",

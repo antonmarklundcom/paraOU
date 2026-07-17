@@ -59,10 +59,12 @@ model Tender {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  buyer  Buyer?        @relation(fields: [buyerId], references: [id])
-  awards Award[]
-  events TenderEvent[]
-  matches Match[]
+  buyer    Buyer?        @relation(fields: [buyerId], references: [id])
+  awards   Award[]
+  events   TenderEvent[]
+  matches  Match[]
+  follows  Follow[]
+  alertLog AlertLog[]
 
   @@index([status, deadlineAt])
   @@index([publishedAt])
@@ -144,13 +146,13 @@ enum MatchAction {
 }
 
 model CompanyProfile {
-  id      String  @id @default(cuid())
-  // No Auth.js yet (Phase 5): a browser-generated token identifies an anonymous
-  // profile so the worker's batch pipeline has something durable to score against.
-  // `userId` is filled in when Phase 5 migrates the profile to a real account.
-  anonId  String? @unique
-  userId  String?
-  name    String
+  id     String  @id @default(cuid())
+  // Pre-auth identity: a browser-generated token, set before Phase 5 signup and
+  // kept afterward (harmless once linked — see src/lib/api/identity.ts). `userId`
+  // is filled in the first time the visitor signs in (anon -> account migration).
+  anonId String? @unique
+  userId String?
+  name   String
   description     String // free text; drives the embedding
   categoryCodes   String[]
   keywords        String[]
@@ -166,7 +168,9 @@ model CompanyProfile {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  matches Match[]
+  user          User?         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  matches       Match[]
+  savedSearches SavedSearch[]
 
   @@index([userId])
 }
@@ -210,4 +214,115 @@ model AiUsage {
 
   @@index([createdAt])
   @@index([purpose, createdAt])
+}
+
+// ─── Phase 5: accounts, saved searches, alerts (docs/03, docs/05 §Alert emails) ──
+
+enum AlertFrequency {
+  INSTANT // every worker cycle that finds new items
+  DAILY
+  WEEKLY
+  NONE // muted
+}
+
+enum AlertChannel {
+  EMAIL
+  NONE
+}
+
+// Auth.js (NextAuth v5) adapter models — field/relation shapes verified against
+// the official @auth/prisma-adapter schema (packages/adapter-prisma/prisma/
+// schema.prisma in nextauthjs/next-auth) on 2026-07-16. WebAuthn/Authenticator
+// omitted — only Email (magic link) + Google are used (PHASE-5 step 1).
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  email         String    @unique
+  emailVerified DateTime?
+  image         String?
+
+  // App-specific fields (docs/03 User model + PHASE-5 step 6).
+  locale         String         @default("es")
+  alertChannel   AlertChannel   @default(EMAIL)
+  alertFrequency AlertFrequency @default(DAILY)
+  lastDigestAt   DateTime?
+  createdAt      DateTime       @default(now())
+
+  accounts Account[]
+  sessions Session[]
+  profiles CompanyProfile[]
+  follows  Follow[]
+  alertLog AlertLog[]
+}
+
+model Account {
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([provider, providerAccountId])
+}
+
+model Session {
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@id([identifier, token])
+}
+
+model SavedSearch {
+  id        String  @id @default(cuid())
+  profileId String
+  name      String
+  params    Json // serialized /licitaciones filter state
+  alerting  Boolean @default(true)
+  createdAt DateTime @default(now())
+
+  profile CompanyProfile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+
+  @@index([profileId])
+}
+
+model Follow {
+  id        String   @id @default(cuid())
+  userId    String
+  tenderId  String
+  createdAt DateTime @default(now())
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tender Tender @relation(fields: [tenderId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, tenderId])
+  @@index([tenderId])
+}
+
+model AlertLog {
+  id       String   @id @default(cuid())
+  userId   String
+  tenderId String
+  channel  String // "EMAIL"
+  sentAt   DateTime @default(now())
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tender Tender @relation(fields: [tenderId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, tenderId, channel])
 }
