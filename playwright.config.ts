@@ -28,6 +28,12 @@ export default defineConfig({
     url: `http://localhost:${PORT}`,
     reuseExistingServer: !process.env.CI,
     timeout: 120_000,
+    env: {
+      // e2e-only: lets the auth.spec golden path read the magic-link email via
+      // GET /api/dev/last-email (never enabled in a real deploy — see .env.example).
+      DEV_EMAIL_OUTBOX_ENABLED: "1",
+      DEV_EMAIL_OUTBOX_PATH: ".dev-outbox/e2e-emails.jsonl",
+    },
   },
   projects: [
     { name: "chromium", use: { ...devices["Desktop Chrome"], launchOptions: { executablePath } } },

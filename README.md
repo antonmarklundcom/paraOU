@@ -8,13 +8,15 @@ actually win, ranked, with a plain-language explanation."
 
 ## Status
 
-🚧 **Phases 1–4 complete.** Phase 1: DNCP client, Postgres schema, sync worker,
+🚧 **Phases 1–5 complete.** Phase 1: DNCP client, Postgres schema, sync worker,
 backfill CLI (running on synthetic OCDS fixtures — the build environment couldn't
 reach `contrataciones.gov.py`, docs/06 risk T4; live API paths/shapes still need
 verification, see [owner checklist](#before-phase-2-owner-must-verify)). Phase 2: the
 internal search/filter/sort REST API. Phase 3: the public frontend. Phase 4: AI
 company matching (running on a deterministic mock provider — no `GEMINI_API_KEY` in
-this environment; see [AI matching](#ai-matching-phase-4) below).
+this environment; see [AI matching](#ai-matching-phase-4) below). Phase 5: accounts,
+saved searches, and email alerts (running on a local dev email outbox — no
+`RESEND_API_KEY` in this environment; see [Accounts & alerts](#accounts--alerts-phase-5)).
 
 | Phase | Status |
 |---|---|
@@ -22,7 +24,7 @@ this environment; see [AI matching](#ai-matching-phase-4) below).
 | 2 — Internal API (search/filter/sort) | ✅ built & tested |
 | 3 — Frontend (overview, detail, SEO) | ✅ built & tested |
 | 4 — AI matching | ✅ built & tested (mock provider — no Gemini key) |
-| 5 — Accounts & alerts | ⬜ not started |
+| 5 — Accounts & alerts | ✅ built & tested (dev email outbox — no Resend key) |
 | 6 — Monetization | ⬜ not started |
 
 ### API (Phase 2)
@@ -51,7 +53,7 @@ Spanish-first public UI (docs/05), SSR for SEO, light + dark, responsive to 360p
 |---|---|
 | `/` | Landing: value prop, live counters (open tenders / value in play), top categories. |
 | `/licitaciones` | Overview: URL-serialized filter rail (works with JS disabled), sort, active-filter chips, SSR first page + client "load more". |
-| `/licitaciones/[ocid]` | Detail: countdown hero, key-facts grid, timeline, awards, buyer-history teaser, DNCP document links, `.ics` download, follow/bid/dismiss (localStorage until Phase 5), JSON-LD. |
+| `/licitaciones/[ocid]` | Detail: countdown hero, key-facts grid, timeline, awards, buyer-history teaser, DNCP document links, `.ics` download, follow (DB when signed in, localStorage otherwise)/bid/dismiss, JSON-LD. |
 | `/compradores/[id]` · `/proveedores/[id]` | Buyer/supplier profiles + aggregates. |
 | `/sitemap.xml` · `/robots.txt` | SEO. |
 
@@ -89,6 +91,40 @@ pair, cached forever until either side changes.
   for a field sourced from government-published, third-party-authored text.
 - `npm run ai:enrich` — one-shot embed + summarize + match run (also runs
   automatically after every worker sync).
+
+### Accounts & alerts (Phase 5)
+
+Implements docs/05 §Alert emails end to end: Auth.js v5 (`next-auth@5.0.0-beta.31`
++ `@auth/prisma-adapter`) for magic-link (primary) + optional Google sign-in, saved
+searches, and a daily digest email.
+
+- **No `RESEND_API_KEY` in this environment** → outbound email (magic links +
+  digests) is written to a local JSONL file (`src/lib/email/transport.ts`) instead
+  of sent. Set `RESEND_API_KEY` to switch to real Resend. Request shapes were taken
+  from Auth.js's own built-in Resend provider source, verified live 2026-07-16.
+- **Anonymous → account migration**: Phase 4's `httpOnly` anon cookie identifies a
+  pre-signup profile; `src/lib/identity.ts` links it to the real account the first
+  time an authenticated request touches it. Verified live end to end (create profile
+  anonymously → sign in with a new email → profile appears under the account).
+- **Saved searches**: "Guardar búsqueda" on `/licitaciones` (gated behind sign-in);
+  manage (rename via re-save, toggle alerting, delete) from `/panel`.
+- **Alert engine** (`src/worker/alerts.ts`, runs after every sync + nightly
+  reconcile): gathers new high-score `Match`es (≥70), saved-search hits, and
+  status/deadline changes on followed tenders; dedupes via `AlertLog` (a tender is
+  **never** alerted twice); caps each digest at 10 items, rolling any overflow into
+  the next run. `alertFrequency` (INSTANT/DAILY/WEEKLY/NONE) is enforced per user —
+  plan-based gating (FREE/PRO/etc.) is deferred to Phase 6 since billing doesn't
+  exist yet.
+- **Account page `/cuenta`**: locale, alert channel/frequency, one-click
+  `DELETE /api/account` (full cascade — verified live: user, profiles, matches,
+  saved searches, follows, and alert log all removed; other users' data untouched).
+  One-click `List-Unsubscribe` header (RFC 8058) on every digest.
+- `npm run alerts:once` — one-shot alert engine run for local verification.
+- Playwright e2e (`e2e/auth.spec.ts`) drives the real golden path — signup → click
+  the magic link (read from the dev outbox) → create a profile → save a search →
+  trigger the alert engine → assert exactly one digest, then zero on re-run — via
+  two dev-only routes (`/api/dev/last-email`, `/api/dev/run-alerts`) gated by
+  `DEV_EMAIL_OUTBOX_ENABLED=1`, which is **never** set outside local dev/e2e.
 
 ### Running locally (Phase 1)
 

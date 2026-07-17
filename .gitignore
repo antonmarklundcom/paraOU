@@ -150,3 +150,6 @@ next-env.d.ts
 /playwright-report/
 /blob-report/
 /playwright/.cache/
+
+# Dev email outbox (Phase 5)
+.dev-outbox/

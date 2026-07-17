@@ -95,5 +95,5 @@ jobs:
       - run: npm run build
       - name: Install Playwright Chromium
         run: npx playwright install --with-deps chromium
-      - name: Playwright e2e (browse → filter → detail → .ics)
+      - name: Playwright e2e (browse/filter/detail + signup/profile/digest)
         run: npm run e2e
