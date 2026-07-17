@@ -80,9 +80,14 @@ export function effectivePlan(user: {
   return "FREE";
 }
 
+/**
+ * Launch prices (PLAN.md Phase 0 decision #1, owner-approved default): annual
+ * = monthly × 10 ("2 months free"). Update here only — PricingCards.tsx and
+ * the Stripe products/prices created in the dashboard must match these.
+ */
 export const PRICING = {
-  FREE: { usd: 0, label: "Gratis" },
-  PRO: { usdMin: 29, usdMax: 49, label: "Pro" },
-  BUSINESS: { usdMin: 99, usdMax: 149, label: "Business" },
-  AGENCY: { usdMin: 299, label: "Agencia / API" },
+  FREE: { usdMonthly: 0, label: "Gratis" },
+  PRO: { usdMonthly: 29, label: "Pro" },
+  BUSINESS: { usdMonthly: 99, label: "Business" },
+  AGENCY: { usdMonthly: 299, label: "Agencia / API" },
 } as const;

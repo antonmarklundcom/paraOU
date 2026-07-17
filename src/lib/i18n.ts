@@ -18,6 +18,10 @@ const es = {
     perfil: "Mi perfil",
     pricing: "Planes",
   },
+  footer: {
+    terms: "Términos",
+    privacy: "Privacidad",
+  },
   overview: {
     title: "Licitaciones",
     resultsOne: "licitación",

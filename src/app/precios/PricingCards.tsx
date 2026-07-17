@@ -49,6 +49,13 @@ export function PricingCards({
   const primaryBtn = cn(btn, "bg-primary text-primary-foreground hover:opacity-90");
   const ghostBtn = cn(btn, "border border-border hover:bg-accent");
 
+  /** Annual = monthly × 10 ("2 months free"), shown as an effective /mo rate. */
+  function priceLabel(usdMonthly: number): string {
+    if (usdMonthly === 0) return "$0";
+    const amount = cycle === "annual" ? Math.round((usdMonthly * 10) / 12) : usdMonthly;
+    return `$${amount}`;
+  }
+
   const tiers: {
     key: "FREE" | "PRO" | "BUSINESS" | "AGENCY";
     label: string;
@@ -61,21 +68,21 @@ export function PricingCards({
       key: "PRO",
       label: PRICING.PRO.label,
       desc: t.proDesc,
-      price: `$${PRICING.PRO.usdMin}–${PRICING.PRO.usdMax}`,
+      price: priceLabel(PRICING.PRO.usdMonthly),
       billable: true,
     },
     {
       key: "BUSINESS",
       label: PRICING.BUSINESS.label,
       desc: t.businessDesc,
-      price: `$${PRICING.BUSINESS.usdMin}–${PRICING.BUSINESS.usdMax}`,
+      price: priceLabel(PRICING.BUSINESS.usdMonthly),
       billable: true,
     },
     {
       key: "AGENCY",
       label: PRICING.AGENCY.label,
       desc: t.agencyDesc,
-      price: `$${PRICING.AGENCY.usdMin}+`,
+      price: `$${PRICING.AGENCY.usdMonthly}+`,
       billable: false,
     },
   ];
