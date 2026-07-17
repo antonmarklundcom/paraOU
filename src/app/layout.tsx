@@ -3,6 +3,8 @@ import Link from "next/link";
 import "./globals.css";
 import { dict } from "@/lib/i18n";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import { AuthNav } from "@/components/AuthNav";
+import { FollowMigrator } from "@/components/FollowMigrator";
 
 export const metadata: Metadata = {
   title: { default: "ParaOU — Licitaciones de Paraguay", template: "%s · ParaOU" },
@@ -36,10 +38,12 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
               <Link href="/perfil" className="hover:text-primary">
                 Mi perfil
               </Link>
+              <AuthNav />
               <ThemeToggle />
             </nav>
           </div>
         </header>
+        <FollowMigrator />
         {children}
         <footer className="mt-16 border-t border-border">
           <div className="mx-auto max-w-6xl px-4 py-6 text-xs text-muted-foreground">

@@ -5,11 +5,11 @@ import { ingestionStatus } from "@/lib/api/status";
 import { getPygPerUsd } from "@/lib/money";
 import { dict } from "@/lib/i18n";
 import { serialize, type RawParams } from "@/lib/urlParams";
-import { readAnonId } from "@/lib/anon";
-import { getProfileByAnonId } from "@/lib/api/profile";
+import { getCurrentProfile } from "@/lib/identity";
 import { getMatchesForOcids } from "@/lib/api/matches";
 import { FilterRail, SortControl, ActiveChips } from "@/components/overview";
 import { TenderList } from "@/components/TenderList";
+import { SaveSearchButton } from "@/components/SaveSearchButton";
 
 export const dynamic = "force-dynamic";
 
@@ -31,23 +31,19 @@ export default async function LicitacionesPage({
   const parsed = tenderQuerySchema.safeParse(raw);
   const query = parsed.success ? parsed.data : tenderQuerySchema.parse({});
 
-  const [result, options, usdRate, status, anonId] = await Promise.all([
+  const [result, options, usdRate, status, { profile }] = await Promise.all([
     searchTenders(query),
     getFilterOptions(),
     getPygPerUsd(),
     ingestionStatus(),
-    readAnonId(),
+    getCurrentProfile(),
   ]);
 
   // Phase 4: badge cards with real match scores when the visitor has a profile.
-  const initialMatches = anonId
-    ? await getProfileByAnonId(anonId).then((p) =>
-        p
-          ? getMatchesForOcids(
-              p.id,
-              result.items.map((i) => i.ocid),
-            )
-          : {},
+  const initialMatches = profile
+    ? await getMatchesForOcids(
+        profile.id,
+        result.items.map((i) => i.ocid),
       )
     : {};
 
@@ -90,6 +86,7 @@ export default async function LicitacionesPage({
         <section className="min-w-0 flex-1">
           <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
             <SortControl params={raw} />
+            <SaveSearchButton queryString={qs} />
           </div>
           <div className="mb-4">
             <ActiveChips params={raw} options={options} />

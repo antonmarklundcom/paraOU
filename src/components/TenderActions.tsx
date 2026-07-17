@@ -5,27 +5,58 @@ import { dict } from "@/lib/i18n";
 import { cn } from "@/lib/cn";
 
 /**
- * Follow / bid / dismiss actions. Real persistence lands with accounts (Phase 5);
- * for now anonymous state lives in localStorage so the UX is fully testable
- * (PHASE-3). "Agendar" downloads an .ics from the calendar route.
+ * Follow / bid / dismiss actions. Follow persists to the DB when signed in
+ * (PHASE-5), or to localStorage for anonymous visitors (PHASE-3 behavior,
+ * migrated on first sign-in by FollowMigrator). Bid/dismiss remain
+ * localStorage-only — they're not part of the Phase 5 deliverables (Match.userAction
+ * on the /panel feed is the tracked equivalent for matched tenders).
  */
 type Action = "NONE" | "BIDDING" | "DISMISSED";
 
 export function TenderActions({ ocid, hasDeadline }: { ocid: string; hasDeadline: boolean }) {
   const t = dict().detail;
   const [following, setFollowing] = useState(false);
+  const [authenticated, setAuthenticated] = useState(false);
   const [action, setAction] = useState<Action>("NONE");
 
   useEffect(() => {
+    fetch(`/api/follows/${encodeURIComponent(ocid)}`)
+      .then((r) => r.json())
+      .then((json) => {
+        if (!json.ok) return;
+        setAuthenticated(json.data.authenticated);
+        if (json.data.authenticated) {
+          setFollowing(json.data.following);
+        } else {
+          try {
+            setFollowing(localStorage.getItem(`paraou:follow:${ocid}`) === "1");
+          } catch {
+            /* ignore */
+          }
+        }
+      })
+      .catch(() => {
+        try {
+          setFollowing(localStorage.getItem(`paraou:follow:${ocid}`) === "1");
+        } catch {
+          /* ignore */
+        }
+      });
+
     try {
-      setFollowing(localStorage.getItem(`paraou:follow:${ocid}`) === "1");
       setAction((localStorage.getItem(`paraou:action:${ocid}`) as Action) || "NONE");
     } catch {
       /* ignore */
     }
   }, [ocid]);
 
-  function toggleFollow() {
+  async function toggleFollow() {
+    if (authenticated) {
+      const res = await fetch(`/api/follows/${encodeURIComponent(ocid)}`, { method: "POST" });
+      const json = await res.json();
+      if (json.ok) setFollowing(json.data.following);
+      return;
+    }
     const next = !following;
     setFollowing(next);
     try {
@@ -50,7 +81,7 @@ export function TenderActions({ ocid, hasDeadline }: { ocid: string; hasDeadline
     <div className="flex flex-wrap gap-2">
       <button
         type="button"
-        onClick={toggleFollow}
+        onClick={() => void toggleFollow()}
         className={cn(btn, following && "border-primary text-primary")}
       >
         {following ? `🔔 ${t.following}` : `🔔 ${t.follow}`}

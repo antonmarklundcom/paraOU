@@ -1,9 +1,10 @@
 import Link from "next/link";
-import { readAnonId } from "@/lib/anon";
-import { getProfileByAnonId } from "@/lib/api/profile";
+import { getCurrentProfile } from "@/lib/identity";
 import { getFeed, type FeedTender } from "@/lib/api/matches";
+import { listSavedSearches } from "@/lib/api/savedSearches";
 import { Card } from "@/components/ui";
 import { formatDate, deadlinePhrase } from "@/lib/format";
+import { SavedSearchList } from "@/components/SavedSearchList";
 
 export const dynamic = "force-dynamic";
 
@@ -48,11 +49,11 @@ function Section({ title, items }: { title: string; items: FeedTender[] }) {
   );
 }
 
-/** /panel — logged-in-style dashboard (docs/05 §3), driven by the anon profile
- * cookie until Phase 5 wires real accounts. */
+/** /panel — dashboard (docs/05 §3). Works for both anonymous (pre-Phase-5 cookie)
+ * and signed-in visitors via getCurrentProfile(); saved-search management only
+ * shows once signed in (searches need an account to alert to). */
 export default async function PanelPage() {
-  const anonId = await readAnonId();
-  const profile = anonId ? await getProfileByAnonId(anonId) : null;
+  const { profile, userId } = await getCurrentProfile();
 
   if (!profile) {
     return (
@@ -71,7 +72,10 @@ export default async function PanelPage() {
     );
   }
 
-  const feed = await getFeed(profile.id);
+  const [feed, savedSearches] = await Promise.all([
+    getFeed(profile.id),
+    userId ? listSavedSearches(profile.id) : Promise.resolve([]),
+  ]);
 
   return (
     <main className="mx-auto max-w-3xl px-4 py-6">
@@ -82,6 +86,31 @@ export default async function PanelPage() {
         </Link>
       </div>
       <p className="mt-1 text-sm text-muted-foreground">{profile.name}</p>
+
+      {!userId && (
+        <div className="mt-4 rounded-md border border-status-closing/40 bg-status-closing/10 px-3 py-2 text-sm text-status-closing">
+          Iniciá sesión para guardar búsquedas y recibir alertas por email.{" "}
+          <Link href="/entrar" className="underline">
+            Iniciar sesión
+          </Link>
+        </div>
+      )}
+
+      {userId && (
+        <section className="mt-4">
+          <h2 className="mb-2 text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+            Búsquedas guardadas
+          </h2>
+          <SavedSearchList
+            initial={savedSearches.map((s) => ({
+              id: s.id,
+              name: s.name,
+              alerting: s.alerting,
+              params: s.params as Record<string, string>,
+            }))}
+          />
+        </section>
+      )}
 
       {feed.total === 0 ? (
         <Card className="mt-6 p-6 text-center text-muted-foreground">
