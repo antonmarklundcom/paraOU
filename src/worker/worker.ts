@@ -5,6 +5,7 @@ import { logger } from "../lib/log.js";
 import { dncpConfigured, aiConfigured } from "../lib/env.js";
 import { reconcileRecent, syncIncremental } from "./sync.js";
 import { enrichAfterSync } from "./enrich.js";
+import { runAlertEngine } from "./alerts.js";
 
 /**
  * Ingestion worker entry (docs/02, PHASE-1 step 5): a single long-running process
@@ -39,15 +40,25 @@ async function guarded(name: string, fn: () => Promise<unknown>) {
   }
 }
 
-/** Sync, then enrich (embed/summarize/match) — enrich failures are isolated so an
- * AI hiccup never masks or blocks ingestion (CLAUDE.md rule 6). */
-async function syncAndEnrich() {
-  await syncIncremental(prisma);
+/** Enrich (embed/summarize/match), then run the alert engine — each isolated in
+ * its own try/catch so a failure in one never masks or blocks the other, and
+ * neither ever blocks ingestion correctness (CLAUDE.md rule 6). */
+async function enrichAndAlert() {
   try {
     await enrichAfterSync(prisma);
   } catch (err) {
     logger.error({ err: err instanceof Error ? err.message : String(err) }, "AI enrichment failed");
   }
+  try {
+    await runAlertEngine(prisma);
+  } catch (err) {
+    logger.error({ err: err instanceof Error ? err.message : String(err) }, "alert engine failed");
+  }
+}
+
+async function syncAndEnrich() {
+  await syncIncremental(prisma);
+  await enrichAndAlert();
 }
 
 async function start() {
@@ -74,14 +85,7 @@ async function start() {
     () =>
       void guarded("reconcile", async () => {
         await reconcileRecent(prisma, 3);
-        try {
-          await enrichAfterSync(prisma);
-        } catch (err) {
-          logger.error(
-            { err: err instanceof Error ? err.message : String(err) },
-            "AI enrichment failed",
-          );
-        }
+        await enrichAndAlert();
       }),
     { timezone: TZ },
   );
