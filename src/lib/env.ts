@@ -92,6 +92,9 @@ const schema = z.object({
   // Comma-separated allowlist for /admin (replaces the Phase 4 ADMIN_KEY query
   // param with real session-based access control now that accounts exist).
   ADMIN_EMAILS: z.string().default(""),
+  // Launch polish (docs/08): both optional, both inert unless set.
+  SENTRY_DSN: z.string().optional(),
+  NEXT_PUBLIC_PLAUSIBLE_DOMAIN: z.string().optional(),
 });
 
 export type Env = z.infer<typeof schema>;
