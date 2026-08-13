@@ -56,6 +56,9 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
                 <Link href="/panel" className="hover:text-primary">
                   {t.nav.panel}
                 </Link>
+                <Link href="/planificacion" className="hover:text-primary">
+                  {t.nav.planificacion}
+                </Link>
                 <Link href="/precios" className="hover:text-primary">
                   {t.nav.pricing}
                 </Link>

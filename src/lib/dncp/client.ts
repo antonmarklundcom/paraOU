@@ -9,6 +9,7 @@ import {
   type OcdsRecordPackage,
   type OcdsReleasePackage,
 } from "./ocds.js";
+import { planificacionPackageSchema, type PlanificacionPackage } from "./planning.js";
 
 export interface DncpClientOptions {
   apiBase: string;
@@ -180,6 +181,30 @@ export class DncpClient {
   /** Fetch the OCDS record package (full lifecycle) for one process by ocid. */
   async getRecordPackage(ocid: string): Promise<OcdsRecordPackage> {
     return this.get(`ocds/record/${encodeURIComponent(ocid)}`, recordPackageSchema);
+  }
+
+  // ── planificaciones (PAC) — bespoke endpoint, not OCDS (docs/01 table; F3) ──────
+
+  /**
+   * List PAC entries published/modified within a date range. Same auth, rate
+   * limiter and retry behavior as the OCDS calls above — reuses this client's
+   * shared TokenManager/RateLimiter rather than a second client (CLAUDE.md rule 3).
+   *
+   * ⚠️ Path/params modelled from the `planificaciones` group in docs/01; MUST be
+   * confirmed against the live V3 Swagger before trusting this in production.
+   */
+  async searchPlanificaciones(params: {
+    dateFrom?: string;
+    dateTo?: string;
+    anio?: number;
+    page?: number;
+  }): Promise<PlanificacionPackage> {
+    const query: Record<string, string | number> = {};
+    if (params.dateFrom) query.fecha_desde = params.dateFrom;
+    if (params.dateTo) query.fecha_hasta = params.dateTo;
+    if (params.anio) query.anio = params.anio;
+    if (params.page) query.page = params.page;
+    return this.get("planificaciones", planificacionPackageSchema, query);
   }
 }
 
