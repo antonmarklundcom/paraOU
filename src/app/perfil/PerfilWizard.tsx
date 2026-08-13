@@ -1,18 +1,28 @@
 "use client";
 
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
+import { useSession } from "next-auth/react";
 import { dict } from "@/lib/i18n";
 import { cn } from "@/lib/cn";
-import { getProfileToken, profileFetch, setProfileToken } from "@/lib/profileStore";
+import {
+  getProfileToken,
+  profileFetch,
+  setActiveProfileId,
+  setProfileToken,
+} from "@/lib/profileStore";
 import { Card } from "@/components/ui";
 import { MatchCard, type MatchItem } from "@/components/MatchCard";
+import { ProfileSwitcher } from "@/components/ProfileSwitcher";
 
 /**
  * 3-step profile wizard (docs/05 §4): (1) free-text description (drives the
  * embedding), (2) categories with an AI suggestion button, (3) scope. Ends with the
  * instant sample matches — the aha moment. Edits load the existing profile via the
- * localStorage token and PUT (bumping the profile version → re-scoring).
+ * localStorage token / active-profile header and PUT (bumping the profile version
+ * → re-scoring). `?new=1` (from the Phase F2 switcher's "+ Nuevo perfil") forces a
+ * blank form even for an account that already has profiles.
  */
 
 interface CategoryOption {
@@ -60,6 +70,9 @@ export function PerfilWizard({
   departments: { value: string; count: number }[];
 }) {
   const t = dict().perfil;
+  const { status } = useSession();
+  const searchParams = useSearchParams();
+  const forceNew = searchParams.get("new") === "1";
   const [step, setStep] = useState(1);
   const [form, setForm] = useState<FormState>(EMPTY);
   const [isEdit, setIsEdit] = useState(false);
@@ -69,9 +82,11 @@ export function PerfilWizard({
   const [sample, setSample] = useState<MatchItem[] | null>(null);
   const [aiDown, setAiDown] = useState(false);
 
-  // Load existing profile for editing.
+  // Load existing (active) profile for editing — skipped when the switcher's
+  // "+ Nuevo perfil" sent us here explicitly to create another one (Phase F2).
   useEffect(() => {
-    if (!getProfileToken()) return;
+    if (forceNew) return;
+    if (!getProfileToken() && status !== "authenticated") return;
     void profileFetch("/api/profile").then(async (res) => {
       if (!res.ok) return;
       const { data } = await res.json();
@@ -88,7 +103,7 @@ export function PerfilWizard({
         certifications: data.certifications.join(", "),
       });
     });
-  }, []);
+  }, [forceNew, status]);
 
   function toggle(list: string[], value: string): string[] {
     return list.includes(value) ? list.filter((v) => v !== value) : [...list, value];
@@ -143,6 +158,7 @@ export function PerfilWizard({
       }
       const { data } = await res.json();
       if (data.anonToken) setProfileToken(data.anonToken);
+      if (data.id) setActiveProfileId(data.id);
 
       // The aha moment: judge the top candidates now (capped at 5 LLM calls).
       const sampleRes = await profileFetch("/api/profile/sample-matches", { method: "POST" });
@@ -171,6 +187,7 @@ export function PerfilWizard({
 
   return (
     <div className="mx-auto max-w-2xl">
+      {step <= 3 && <ProfileSwitcher />}
       {step <= 3 && (
         <p className="mb-4 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
           {t.step} {step} {t.of} 3

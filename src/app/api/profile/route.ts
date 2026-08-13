@@ -1,7 +1,9 @@
 import { embedProfile } from "@/lib/ai/embeddings";
-import { fail, handle, ok } from "@/lib/api/http";
+import { auth } from "@/lib/auth";
+import { ApiError, handle, ok } from "@/lib/api/http";
 import {
   createProfile,
+  deleteProfile,
   profileBodySchema,
   publicProfile,
   requireProfile,
@@ -59,6 +61,15 @@ export const PUT = handle(async (req) => {
   return ok({ ...publicProfile(profile), embedded });
 });
 
-export const DELETE = handle(async () => {
-  return fail(405, "NOT_IMPLEMENTED", "Profile deletion ships with accounts (Phase 5)");
+/** Deletes the caller's currently *active* profile (Phase F2 switcher). Signed-in
+ * only, and refuses to remove an account's last remaining profile — see
+ * `deleteProfile` for details. Prefer `DELETE /api/profile/[id]` when the client
+ * already knows the target id (e.g. deleting a profile that isn't active). */
+export const DELETE = handle(async (req) => {
+  enforcePublicRateLimit(req);
+  const session = await auth();
+  if (!session?.user?.id) throw new ApiError(401, "UNAUTHENTICATED", "Sign in required");
+  const active = await requireProfile(req);
+  await deleteProfile(session.user.id, active.id);
+  return ok({ deleted: true });
 });

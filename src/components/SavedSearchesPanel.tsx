@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
 import { dict } from "@/lib/i18n";
+import { profileFetch } from "@/lib/profileStore";
 
 interface SavedSearch {
   id: string;
@@ -28,7 +29,7 @@ export function SavedSearchesPanel() {
   const [searches, setSearches] = useState<SavedSearch[] | null>(null);
 
   async function load() {
-    const res = await fetch("/api/saved-searches");
+    const res = await profileFetch("/api/saved-searches");
     if (res.ok) setSearches((await res.json()).data);
   }
 
