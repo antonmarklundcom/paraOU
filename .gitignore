@@ -150,3 +150,6 @@ next-env.d.ts
 /playwright-report/
 /blob-report/
 /playwright/.cache/
+
+# Claude Code agent worktree scratch space
+.claude/
