@@ -9,7 +9,15 @@ import { Card, StatusBadge, Tag } from "@/components/ui";
 import { TenderActions } from "@/components/TenderActions";
 import { AiSummary } from "@/components/AiSummary";
 import { DocumentAnalysis } from "@/components/DocumentAnalysis";
-import { formatGs, formatUsdApprox, formatDate, deadlinePhrase } from "@/lib/format";
+import { AwardOutcome } from "@/components/AwardOutcome";
+import {
+  formatGs,
+  formatUsdApprox,
+  formatDate,
+  deadlinePhrase,
+  referencePercentLabel,
+} from "@/lib/format";
+import { pickDecidingAward } from "@/lib/awards";
 
 export const dynamic = "force-dynamic";
 
@@ -56,6 +64,7 @@ export default async function TenderDetailPage({ params }: { params: Promise<{ o
 
   const t = dict().detail;
   const usd = formatUsdApprox(tender.amountMax, usdRate);
+  const decidingAward = tender.status === "AWARDED" ? pickDecidingAward(tender.awards) : null;
   const closingSoon =
     tender.daysUntilDeadline !== null &&
     tender.daysUntilDeadline >= 0 &&
@@ -113,6 +122,15 @@ export default async function TenderDetailPage({ params }: { params: Promise<{ o
       </div>
 
       {tender.aiSummary && <AiSummary tenderId={tender.id} summary={tender.aiSummary} />}
+
+      {decidingAward?.amount && (
+        <AwardOutcome
+          tenderId={tender.id}
+          winnerName={decidingAward.supplier?.name ?? "proveedor no especificado"}
+          priceLabel={formatGs(decidingAward.amount)}
+          percentLabel={referencePercentLabel(decidingAward.amount, tender.amountMax)}
+        />
+      )}
 
       {/* Key facts */}
       <Card className="mt-5 p-4">

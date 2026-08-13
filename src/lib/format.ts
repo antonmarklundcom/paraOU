@@ -58,6 +58,25 @@ export function formatDateShort(iso: string | null | undefined): string {
   return Number.isNaN(d.getTime()) ? "—" : dateShortFmt.format(d);
 }
 
+/**
+ * "12% por debajo de la referencia" / "8% por encima de la referencia" — how a
+ * winning award compares to the tender's reference/estimated amount (PHASE-F4
+ * award notifications). Null when there's nothing to compare against.
+ */
+export function referencePercentLabel(
+  winningAmount: string | number | null | undefined,
+  reference: string | number | null | undefined,
+): string | null {
+  if (reference === null || reference === undefined || reference === "") return null;
+  if (winningAmount === null || winningAmount === undefined || winningAmount === "") return null;
+  const ref = typeof reference === "string" ? Number(reference) : reference;
+  const win = typeof winningAmount === "string" ? Number(winningAmount) : winningAmount;
+  if (!Number.isFinite(ref) || ref <= 0 || !Number.isFinite(win)) return null;
+  const pct = Math.round(Math.abs(((ref - win) / ref) * 100));
+  if (pct === 0) return "igual a la referencia";
+  return ref > win ? `${pct}% por debajo de la referencia` : `${pct}% por encima de la referencia`;
+}
+
 /** Human deadline phrase from a precomputed day delta (computed server-side). */
 export function deadlinePhrase(days: number | null | undefined): string {
   if (days === null || days === undefined) return "Sin fecha límite";

@@ -2,17 +2,22 @@ import { prisma } from "../db.js";
 import { env } from "../env.js";
 import { searchTenders, tenderQuerySchema } from "../api/tenders.js";
 import { SHOW_THRESHOLD } from "../ai/match.js";
+import { formatGs, referencePercentLabel } from "../format.js";
+import { pickDecidingAward } from "../awards.js";
 
 /**
- * Alert candidate collection (PHASE-5 #3): for a user, gather tenders worth
- * emailing about from three sources — saved searches, high-score AI matches, and
- * changes on followed tenders — then dedupe against AlertLog so a re-run (or a
- * later tick) never re-sends the same (user, tender) pair. This is the
- * "AlertLog dedupe test" acceptance criterion: sending is a one-time event per
- * tender per user, not a recurring reminder.
+ * Alert candidate collection (PHASE-5 #3, PHASE-F4): for a user, gather tenders
+ * worth emailing about from four sources — saved searches, high-score AI matches,
+ * changes on followed tenders, and awards on tenders the user is bidding on — then
+ * dedupe against AlertLog so a re-run (or a later tick) never re-sends the same
+ * (user, tender, reason). This is the "AlertLog dedupe test" acceptance criterion:
+ * sending is a one-time event per tender+reason per user, not a recurring
+ * reminder. Dedupe is scoped by `reason` (not just tenderId) so a tender can still
+ * earn a later, distinct alert — e.g. "match" while OPEN, then "award" once
+ * AWARDED — without one suppressing the other.
  */
 
-export type AlertReason = "saved_search" | "match" | "tender_changed";
+export type AlertReason = "saved_search" | "match" | "tender_changed" | "award";
 
 export interface AlertCandidate {
   tenderId: string;
@@ -24,13 +29,23 @@ export interface AlertCandidate {
   reasonLabel: string;
 }
 
+// Higher-priority reasons win when the same tender is surfaced by more than one
+// source in a single run (PHASE-5 note: "a real profile match reason beats a
+// generic saved-search hit"; PHASE-F4 extends this — an award is the most
+// specific, valuable thing we can tell a bidder about a tender).
+const REASON_PRIORITY: AlertReason[] = ["award", "match", "tender_changed", "saved_search"];
+
+function reasonRank(reason: AlertReason): number {
+  return REASON_PRIORITY.indexOf(reason);
+}
+
 async function alreadySent(userId: string, tenderIds: string[]): Promise<Set<string>> {
   if (tenderIds.length === 0) return new Set();
   const rows = await prisma.alertLog.findMany({
     where: { userId, channel: "email", tenderId: { in: tenderIds } },
-    select: { tenderId: true },
+    select: { tenderId: true, reason: true },
   });
-  return new Set(rows.map((r) => r.tenderId));
+  return new Set(rows.map((r) => `${r.tenderId}:${r.reason}`));
 }
 
 async function fromSavedSearches(userId: string): Promise<AlertCandidate[]> {
@@ -134,26 +149,78 @@ async function fromFollowedChanges(userId: string): Promise<AlertCandidate[]> {
   return out;
 }
 
+/**
+ * Award notifications (PHASE-F4, "¿Por qué perdí?"): a tender the user marked
+ * "Voy a ofertar" (Match.userAction = BIDDING) has since been AWARDED, with award
+ * data ingested. Surfaces winner name, winning price, and %-below/above the
+ * tender's reference amount when computable.
+ */
+async function fromAwards(userId: string): Promise<AlertCandidate[]> {
+  const matches = await prisma.match.findMany({
+    where: {
+      profile: { userId },
+      userAction: "BIDDING",
+      tender: { status: "AWARDED" },
+    },
+    include: {
+      tender: {
+        select: {
+          id: true,
+          ocid: true,
+          title: true,
+          buyerName: true,
+          deadlineAt: true,
+          amountMax: true,
+          awards: { include: { supplier: true } },
+        },
+      },
+    },
+  });
+
+  const out: AlertCandidate[] = [];
+  for (const m of matches) {
+    const award = pickDecidingAward(m.tender.awards);
+    if (!award || award.amount === null) continue; // AWARDED but award line not ingested yet
+    const winnerName = award.supplier?.name ?? "proveedor no especificado";
+    const priceLabel = formatGs(award.amount.toString());
+    const pctLabel = referencePercentLabel(
+      award.amount.toString(),
+      m.tender.amountMax?.toString() ?? null,
+    );
+    out.push({
+      tenderId: m.tender.id,
+      ocid: m.tender.ocid,
+      title: m.tender.title,
+      buyerName: m.tender.buyerName,
+      deadlineAt: m.tender.deadlineAt,
+      reason: "award",
+      reasonLabel: `Se adjudicó a ${winnerName} · ${priceLabel}${pctLabel ? ` (${pctLabel})` : ""}`,
+    });
+  }
+  return out;
+}
+
 /** Gathers, dedupes (both within-batch and against AlertLog), and caps candidates. */
 export async function collectAlertCandidates(userId: string): Promise<AlertCandidate[]> {
-  const [saved, matched, changed] = await Promise.all([
+  const [saved, matched, changed, awarded] = await Promise.all([
     fromSavedSearches(userId),
     fromMatches(userId),
     fromFollowedChanges(userId),
+    fromAwards(userId),
   ]);
 
   const byTender = new Map<string, AlertCandidate>();
-  // Priority: a real profile match reason beats a generic saved-search hit when
-  // both apply to the same tender.
-  for (const c of [...saved, ...matched, ...changed]) {
+  // Priority (see REASON_PRIORITY): the most specific/valuable reason wins when a
+  // tender is surfaced by more than one source at once.
+  for (const c of [...saved, ...matched, ...changed, ...awarded]) {
     const existing = byTender.get(c.tenderId);
-    if (!existing || (existing.reason === "saved_search" && c.reason !== "saved_search")) {
+    if (!existing || reasonRank(c.reason) < reasonRank(existing.reason)) {
       byTender.set(c.tenderId, c);
     }
   }
 
   const sent = await alreadySent(userId, [...byTender.keys()]);
-  const fresh = [...byTender.values()].filter((c) => !sent.has(c.tenderId));
+  const fresh = [...byTender.values()].filter((c) => !sent.has(`${c.tenderId}:${c.reason}`));
 
   fresh.sort(
     (a, b) => (a.deadlineAt?.getTime() ?? Infinity) - (b.deadlineAt?.getTime() ?? Infinity),

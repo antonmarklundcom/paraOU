@@ -351,19 +351,22 @@ model FollowedTender {
   @@index([tenderId])
 }
 
-// Dedupe + audit of sent alerts (docs/03). One row per (user, tender, channel) —
-// re-running the alert job never double-sends for the same tender.
+// Dedupe + audit of sent alerts (docs/03). One row per (user, tender, channel,
+// reason) — re-running the alert job never double-sends the same alert. Scoped by
+// `reason` (not just tenderId) so a tender can still earn a fresh, distinct alert
+// later in its life — e.g. a "match" alert while OPEN, then an "award" alert once
+// AWARDED (PHASE-F4) — without either suppressing the other.
 model AlertLog {
   id       String   @id @default(cuid())
   userId   String
   tenderId String
   channel  String // "email"
-  reason   String // "saved_search" | "match" | "tender_changed"
+  reason   String // "saved_search" | "match" | "tender_changed" | "award"
   sentAt   DateTime @default(now())
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  @@unique([userId, tenderId, channel])
+  @@unique([userId, tenderId, channel, reason])
   @@index([userId, sentAt])
 }
 
