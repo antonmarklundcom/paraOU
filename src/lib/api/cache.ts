@@ -14,11 +14,18 @@ export async function cached<T>(
   ttlMs: number,
   produce: () => Promise<T>,
   now: () => number = Date.now,
+  options?: { isEmpty?: (value: T) => boolean },
 ): Promise<T> {
   const hit = store.get(key);
-  if (hit && now() < hit.expiresAt) return hit.value as T;
+  if (hit && now() < hit.expiresAt && !options?.isEmpty?.(hit.value as T)) {
+    return hit.value as T;
+  }
   const value = await produce();
-  store.set(key, { value, expiresAt: now() + ttlMs });
+  // Don't trust an "empty" result for the full TTL — it usually means the DB
+  // hasn't been seeded/synced yet (e.g. a cold deploy, or a health-check probe
+  // that lands before the first ingest), not that there's genuinely nothing to
+  // show. Caching it anyway would make real data invisible for up to `ttlMs`.
+  if (!options?.isEmpty?.(value)) store.set(key, { value, expiresAt: now() + ttlMs });
   return value;
 }
 

@@ -6,46 +6,58 @@ const HOUR = 60 * 60 * 1000;
 
 /**
  * Filter option lists with counts for the overview filter rail (docs/05 §1).
- * Cached 1h — these shift slowly and are hit on every page load.
+ * Cached 1h — these shift slowly and are hit on every page load. An empty result
+ * isn't trusted for the full TTL (see `cached`'s `isEmpty` option): it usually means
+ * the DB hasn't been seeded/synced yet, not that there's genuinely nothing to show.
  */
 export async function getFilterOptions() {
-  return cached("meta:filters", HOUR, async () => {
-    const [statuses, departments, methods, categories] = await Promise.all([
-      prisma.$queryRaw<{ value: string; count: number }[]>(Prisma.sql`
+  return cached(
+    "meta:filters",
+    HOUR,
+    async () => {
+      const [statuses, departments, methods, categories] = await Promise.all([
+        prisma.$queryRaw<{ value: string; count: number }[]>(Prisma.sql`
         SELECT "status"::text AS value, count(*)::int AS count
         FROM "Tender" GROUP BY "status" ORDER BY count DESC
       `),
-      prisma.$queryRaw<{ value: string; count: number }[]>(Prisma.sql`
+        prisma.$queryRaw<{ value: string; count: number }[]>(Prisma.sql`
         SELECT "department" AS value, count(*)::int AS count
         FROM "Tender" WHERE "department" IS NOT NULL
         GROUP BY "department" ORDER BY count DESC LIMIT 50
       `),
-      prisma.$queryRaw<{ value: string; count: number }[]>(Prisma.sql`
+        prisma.$queryRaw<{ value: string; count: number }[]>(Prisma.sql`
         SELECT "procurementMethod" AS value, count(*)::int AS count
         FROM "Tender" WHERE "procurementMethod" IS NOT NULL
         GROUP BY "procurementMethod" ORDER BY count DESC LIMIT 50
       `),
-      prisma.$queryRaw<{ code: string; name: string | null; count: number }[]>(Prisma.sql`
+        prisma.$queryRaw<{ code: string; name: string | null; count: number }[]>(Prisma.sql`
         SELECT "categoryCode" AS code, max("categoryName") AS name, count(*)::int AS count
         FROM "Tender" WHERE "categoryCode" IS NOT NULL
         GROUP BY "categoryCode" ORDER BY count DESC LIMIT 100
       `),
-    ]);
-    return { statuses, departments, methods, categories };
-  });
+      ]);
+      return { statuses, departments, methods, categories };
+    },
+    undefined,
+    { isEmpty: (v) => v.categories.length === 0 && v.departments.length === 0 },
+  );
 }
 
 /**
  * Category × department pairs with real tenders, for the SEO combo landing pages
  * (`/licitaciones/categoria/[slug]/[deptSlug]`, PLAN.md Phase G). Capped and cached
  * like `getFilterOptions` — only pairs that actually have data get a page, so the
- * combo pages are never thin/empty content.
+ * combo pages are never thin/empty content. Same empty-result cache bypass as
+ * `getFilterOptions`.
  */
 export async function getCategoryDepartmentCombos(limit = 300) {
-  return cached(`meta:combos:${limit}`, HOUR, async () => {
-    return prisma.$queryRaw<
-      { categoryCode: string; categoryName: string | null; department: string; count: number }[]
-    >(Prisma.sql`
+  return cached(
+    `meta:combos:${limit}`,
+    HOUR,
+    async () => {
+      return prisma.$queryRaw<
+        { categoryCode: string; categoryName: string | null; department: string; count: number }[]
+      >(Prisma.sql`
       SELECT "categoryCode", max("categoryName") AS "categoryName", "department",
              count(*)::int AS count
       FROM "Tender"
@@ -54,5 +66,8 @@ export async function getCategoryDepartmentCombos(limit = 300) {
       ORDER BY count DESC
       LIMIT ${limit}
     `);
-  });
+    },
+    undefined,
+    { isEmpty: (v) => v.length === 0 },
+  );
 }
