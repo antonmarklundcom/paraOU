@@ -2,7 +2,8 @@
 
 > **Authored by Fable 5** (planning/architecture model) — handoff to **Sonnet 5 / Opus 4.8**
 > for implementation. Last full-repo review: 2026-07-16, `main` @ `ecdc30e`
-> (Phase 6 monetization merged).
+> (Phase 6 monetization merged). Status refreshed 2026-08-13: Phase L1 and
+> Phase F items F2/F3/F4 merged; F1 (WhatsApp) is the only Phase F item left.
 
 ## Model tiering — who does what
 
@@ -52,6 +53,8 @@ issue comment or a note in this file) and the build sessions will follow it.
    profile per account). BUT the Business tier currently *advertises* 3 profiles
    and docs/00 promised WhatsApp — see the honesty fix in L1.2. WhatsApp and the
    multi-profile switcher are Phase F fast-follows, not launch blockers.
+   *(Update: the multi-profile switcher shipped in F2 — Business/Agency accounts
+   can now create/switch/delete profiles. WhatsApp (F1) is still outstanding.)*
 3. 🔑 **Agency tier** — recommended: **contact-us / manual** (mailto CTA already
    degrades this way; close deals by hand via `/admin` `manualBilling`). No code.
 4. 🔑 **Legal pages** — recommended: **agent-drafted Spanish términos +
@@ -112,15 +115,17 @@ Re-rank against real user feedback before building. Current order:
    Business API behind a channel abstraction next to `src/lib/email.ts`; digest
    + instant deadline warnings; plan-gated to Business+. The #1
    Paraguay-appropriate feature (docs/07) and a Business-tier promise.
-2. **Multi-profile switcher UI** (F2, Sonnet): `/perfil` + `/panel` currently
-   assume one profile; data model + `plan.ts` `maxProfiles` already support 3
-   (Business) / unlimited (Agency). Unblocks honest Business-tier copy.
-3. **PAC early-warning** (F3, Sonnet): ingest DNCP `planificaciones` (same
-   pipeline pattern), surface as a Business-tier "planned purchases" feed —
-   docs/07's top impact-per-effort item.
-4. **"Why did I lose?" award notifications** (F4): user marked "Voy a ofertar" →
-   award published → notify winner/price/% below reference. Cheap, closes the
-   loop, proves data value every cycle.
+   **Status: not started — the only remaining Phase F item.**
+2. ✅ **Multi-profile switcher UI** (F2, Sonnet) — merged (PR #12). Business/
+   Agency users can create/name/switch/delete profiles (`ProfileSwitcher`,
+   `x-profile-id`); saved searches and follows are now scoped per-profile.
+3. ✅ **PAC early-warning** (F3, Sonnet) — merged (PR #11). `PlannedPurchase`
+   model + worker sync for DNCP `planificaciones`, surfaced at `/planificacion`
+   (Business+ gated). Built/tested against synthetic fixtures — not yet
+   verified against the live V3 Swagger (same T4 caveat as tender ingestion).
+4. ✅ **"Why did I lose?" award notifications** (F4) — merged (PR #9). A 4th
+   alert-engine source fires when a "Voy a ofertar" tender is AWARDED, with
+   winner/price/% vs. reference; surfaced on the tender detail page too.
 
 ## Phase G — Growth & content/SEO (ongoing, ~1 session to seed)
 
