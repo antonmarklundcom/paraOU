@@ -12,6 +12,7 @@ const es = {
   tagline: "Inteligencia de contrataciones públicas de Paraguay",
   nav: {
     tenders: "Licitaciones",
+    observatorio: "Observatorio",
     buyers: "Compradores",
     suppliers: "Proveedores",
     panel: "Mi panel",
@@ -93,6 +94,35 @@ const es = {
     openToday: "licitaciones abiertas",
     inPlay: "en juego",
     topCategories: "Categorías con más movimiento",
+  },
+  observatorio: {
+    title: "Observatorio de contrataciones públicas",
+    subtitle:
+      "Estadísticas públicas y gratuitas del mercado de licitaciones de Paraguay, actualizadas con cada sincronización de la DNCP. Sin necesidad de cuenta.",
+    thisWeek: "Esta semana",
+    thisMonth: "Este mes",
+    newTenders: "licitaciones nuevas",
+    valuePublished: "monto publicado",
+    topCategories: "Rubros con más movimiento",
+    topCategoriesHint: "Categorías con más licitaciones abiertas en este momento, por monto.",
+    topBuyers: "Organismos que más adjudican",
+    topBuyersHint: "Ranking histórico por monto total adjudicado.",
+    closingSoon: "Cierran pronto",
+    closingSoonHint: "Licitaciones abiertas que cierran en los próximos 7 días.",
+    totalTenders: "licitaciones en la base",
+    tenders: "licitaciones",
+    seeAll: "Ver todas",
+    methodology:
+      "Metodología: datos públicos tomados directamente de la DNCP (Dirección Nacional de Contrataciones Públicas). Los montos son referenciales, no siempre coinciden con el monto final adjudicado.",
+  },
+  seoLanding: {
+    breadcrumbHome: "Inicio",
+    breadcrumbTenders: "Licitaciones",
+    introSource: "Datos abiertos de la DNCP, actualizados automáticamente.",
+    relatedDepartments: "Explorar por departamento",
+    relatedCategories: "Explorar por rubro",
+    viewAllFiltered: "Ver todas con más filtros",
+    empty: "Todavía no hay licitaciones registradas para esta combinación.",
   },
   match: {
     badge: "de coincidencia",

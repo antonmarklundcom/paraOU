@@ -2,7 +2,10 @@
 
 > **Authored by Fable 5** (planning/architecture model) — handoff to **Sonnet 5 / Opus 4.8**
 > for implementation. Last full-repo review: 2026-07-16, `main` @ `ecdc30e`
-> (Phase 6 monetization merged).
+> (Phase 6 monetization merged). Status refreshed 2026-08-13: Phase L1 and all
+> four Phase F fast-follows (F1 WhatsApp, F2 multi-profile, F3 PAC
+> early-warning, F4 award-loss notifications) are merged. Phase G (SEO/growth)
+> seeded. Remaining work is Phase L2 (owner-only live verification/ops).
 
 ## Model tiering — who does what
 
@@ -52,6 +55,8 @@ issue comment or a note in this file) and the build sessions will follow it.
    profile per account). BUT the Business tier currently *advertises* 3 profiles
    and docs/00 promised WhatsApp — see the honesty fix in L1.2. WhatsApp and the
    multi-profile switcher are Phase F fast-follows, not launch blockers.
+   *(Update: the multi-profile switcher shipped in F2 — Business/Agency accounts
+   can now create/switch/delete profiles. WhatsApp (F1) is still outstanding.)*
 3. 🔑 **Agency tier** — recommended: **contact-us / manual** (mailto CTA already
    degrades this way; close deals by hand via `/admin` `manualBilling`). No code.
 4. 🔑 **Legal pages** — recommended: **agent-drafted Spanish términos +
@@ -108,24 +113,29 @@ Work `docs/08-launch.md` top to bottom. Agent tasks within it:
 
 Re-rank against real user feedback before building. Current order:
 
-1. ~~**WhatsApp alerts** (F1)~~ — **built**: Twilio WhatsApp Business API behind
-   a provider abstraction (`src/lib/whatsapp/`) and a channel abstraction
-   (`src/lib/alerts/channels.ts`) next to `src/lib/email.ts`; digest + instant
-   deadline-warning templates, signature-verified status/inbound webhook,
-   delivery-state machine with a consecutive-failure cut-off, BAJA/STOP opt-out,
-   OTP opt-in in `/cuenta`, Business+ gated via `plan.ts`. **Runs on the dev
-   transport** — the owner must supply a Twilio account, three Meta-approved
-   templates and the webhook URL (`docs/09-whatsapp.md`) before it sends
-   anything real.
-2. **Multi-profile switcher UI** (F2, Sonnet): `/perfil` + `/panel` currently
-   assume one profile; data model + `plan.ts` `maxProfiles` already support 3
-   (Business) / unlimited (Agency). Unblocks honest Business-tier copy.
-3. **PAC early-warning** (F3, Sonnet): ingest DNCP `planificaciones` (same
-   pipeline pattern), surface as a Business-tier "planned purchases" feed —
-   docs/07's top impact-per-effort item.
-4. **"Why did I lose?" award notifications** (F4): user marked "Voy a ofertar" →
-   award published → notify winner/price/% below reference. Cheap, closes the
-   loop, proves data value every cycle.
+1. ✅ **WhatsApp alerts** (F1) — merged (PR #15). Twilio WhatsApp Business API
+   behind a provider abstraction (`src/lib/whatsapp/`) and a channel
+   abstraction (`src/lib/alerts/channels.ts`) next to `src/lib/email.ts`;
+   digest + instant deadline-warning templates, signature-verified
+   status/inbound webhook, delivery-state machine with a consecutive-failure
+   cut-off, BAJA/STOP opt-out, OTP opt-in in `/cuenta`, Business+ gated via
+   `plan.ts`. **Runs on the dev transport** — the owner must supply a Twilio
+   account, three Meta-approved templates and the webhook URL
+   (`docs/09-whatsapp.md`) before it sends anything real.
+2. ✅ **Multi-profile switcher UI** (F2, Sonnet) — merged (PR #12). Business/
+   Agency users can create/name/switch/delete profiles (`ProfileSwitcher`,
+   `x-profile-id`); saved searches and follows are now scoped per-profile.
+3. ✅ **PAC early-warning** (F3, Sonnet) — merged (PR #11). `PlannedPurchase`
+   model + worker sync for DNCP `planificaciones`, surfaced at `/planificacion`
+   (Business+ gated). Built/tested against synthetic fixtures — not yet
+   verified against the live V3 Swagger (same T4 caveat as tender ingestion).
+4. ✅ **"Why did I lose?" award notifications** (F4) — merged (PR #9). A 4th
+   alert-engine source fires when a "Voy a ofertar" tender is AWARDED, with
+   winner/price/% vs. reference; surfaced on the tender detail page too.
+
+**All four Phase F fast-follows are now merged.** Remaining work is Phase L2
+(owner-only live verification/ops) and Phase G (SEO/growth, seeded — see
+below).
 
 ## Phase G — Growth & content/SEO (ongoing, ~1 session to seed)
 
