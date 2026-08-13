@@ -45,9 +45,14 @@ test("Business user verifies a WhatsApp number and unlocks the channel", async (
 
   await page.goto("/cuenta");
 
-  // WhatsApp is not selectable before the number is verified.
+  // WhatsApp is not selectable before the number is verified. `toBeDisabled()`
+  // doesn't reliably read a native <option>'s disabled state inside a closed
+  // <select> in Chromium, so assert the DOM attribute directly instead.
   const channelSelect = page.locator("select").nth(1);
-  await expect(channelSelect.locator('option[value="WHATSAPP"]')).toBeDisabled();
+  await expect(channelSelect.locator('option[value="WHATSAPP"]')).toHaveAttribute(
+    "disabled",
+    "",
+  );
 
   // Request the opt-in code through the real form.
   await page.getByLabel("Número de WhatsApp").fill("0981 123 456");
