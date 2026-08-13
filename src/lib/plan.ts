@@ -24,6 +24,10 @@ export interface PlanLimits {
   documentAnalysis: boolean;
   /** Multi-seat / competitor watchlists — UI-level flag for future work. */
   multiSeat: boolean;
+  /** PAC early-warning "planned purchases" feed (F3, docs/07 #1) — planned
+   * purchases are intelligence (they exist to be sold), unlike the free public
+   * Tender record, so this is Business-tier gated. */
+  plannedPurchases: boolean;
 }
 
 export const PLAN_LIMITS: Record<Plan, PlanLimits> = {
@@ -34,6 +38,7 @@ export const PLAN_LIMITS: Record<Plan, PlanLimits> = {
     fullBuyerHistory: false,
     documentAnalysis: false,
     multiSeat: false,
+    plannedPurchases: false,
   },
   PRO: {
     maxProfiles: 1,
@@ -42,6 +47,7 @@ export const PLAN_LIMITS: Record<Plan, PlanLimits> = {
     fullBuyerHistory: true,
     documentAnalysis: false,
     multiSeat: false,
+    plannedPurchases: false,
   },
   BUSINESS: {
     maxProfiles: 3,
@@ -50,6 +56,7 @@ export const PLAN_LIMITS: Record<Plan, PlanLimits> = {
     fullBuyerHistory: true,
     documentAnalysis: true,
     multiSeat: true,
+    plannedPurchases: true,
   },
   AGENCY: {
     maxProfiles: Infinity,
@@ -58,6 +65,7 @@ export const PLAN_LIMITS: Record<Plan, PlanLimits> = {
     fullBuyerHistory: true,
     documentAnalysis: true,
     multiSeat: true,
+    plannedPurchases: true,
   },
 };
 

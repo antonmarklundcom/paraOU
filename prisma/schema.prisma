@@ -81,6 +81,7 @@ model Buyer {
   ruc     String?
   level   String?
   tenders Tender[]
+  plannedPurchases PlannedPurchase[]
 }
 
 model Supplier {
@@ -394,4 +395,53 @@ model ExchangeRate {
   date      DateTime @id @db.Date
   pygPerUsd Decimal  @db.Decimal(14, 4)
   createdAt DateTime @default(now())
+}
+
+// ── Phase F3: PAC early-warning ─────────────────────────────────────
+
+// DNCP `planificaciones` (Plan Anual de Contrataciones) entries — agencies'
+// *intent* to buy something, published months before the actual tender/OCDS
+// release exists (docs/07 #1). Mirrors Tender's shape (CLAUDE.md rule 4: `raw`
+// keeps the full source JSON; normalized columns are a recomputable
+// projection). Ingested by the same 30-min worker cadence as tenders
+// (src/worker/planningIngest.ts), through the shared DncpClient.
+//
+// Business-tier feed only (src/lib/plan.ts `plannedPurchases`) — the data itself
+// is never gated for tenders (PHASE-6 rule), but PAC early-warning is explicitly
+// sold as a Business-tier hook (docs/07, PLAN.md Phase F #3), so it is gated here
+// unlike Tender.
+model PlannedPurchase {
+  id                String   @id @default(cuid())
+  // DNCP's PAC entry id — the natural external key; there is usually no OCDS
+  // ocid yet since no tender/convocatoria has been convened.
+  externalId        String   @unique
+  // Populated only if/when DNCP links this PAC line to a real OCDS process —
+  // lets the ingest/UI cross-reference once the tender goes live.
+  ocid              String?
+  year              Int?
+  title             String
+  description       String?
+  status            String? // raw DNCP estado (e.g. PROGRAMADO, CONVOCADO, CANCELADO) — not yet a confirmed enum, see planning.ts
+  buyerId           String?
+  buyerName         String? // denormalized for list display, mirrors Tender.buyerName
+  categoryCode      String?
+  categoryName      String?
+  procurementMethod String?
+  estimatedAmount   Decimal? @db.Decimal(20, 4)
+  currency          String   @default("PYG")
+  department        String?
+  estimatedQuarter  String? // e.g. "2026-Q4"
+  estimatedDate     DateTime?
+  publishedAt       DateTime?
+  raw               Json
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  buyer Buyer? @relation(fields: [buyerId], references: [id])
+
+  @@index([status, estimatedDate])
+  @@index([categoryCode])
+  @@index([buyerId])
+  @@index([publishedAt])
 }

@@ -1,0 +1,79 @@
+{
+  "uri": "https://contrataciones.gov.py/datos/api/v3/planificaciones?page=1",
+  "version": "1.0",
+  "publishedDate": "2026-01-15T12:00:00Z",
+  "planificaciones": [
+    {
+      "id": "PAC-2026-000451",
+      "anio": 2026,
+      "nombre": "Adquisición de Ambulancias para Hospitales Regionales",
+      "descripcion": "Compra de 20 ambulancias equipadas para la red de hospitales del interior.",
+      "entidad": {
+        "id": "PY-RUC-80016909",
+        "ruc": "80016909-2",
+        "nombre": "Ministerio de Salud Pública y Bienestar Social",
+        "region": "Central",
+        "departamento": "Central"
+      },
+      "categoria": {
+        "scheme": "UNSPSC",
+        "id": "25101507",
+        "description": "Ambulancias"
+      },
+      "montoEstimado": { "amount": 12000000000, "currency": "PYG" },
+      "tipoProcedimiento": "Licitación Pública Nacional",
+      "trimestreEstimado": "2026-Q4",
+      "fechaEstimada": "2026-10-01T00:00:00Z",
+      "fechaPublicacion": "2026-01-10T09:00:00Z",
+      "estado": "PROGRAMADO"
+    },
+    {
+      "id": "PAC-2026-000452",
+      "anio": 2026,
+      "nombre": "Mantenimiento Vial Rutas Departamentales",
+      "descripcion": "Bacheo y recapado asfáltico de rutas departamentales en Alto Paraná.",
+      "entidad": {
+        "id": "PY-RUC-30002020",
+        "ruc": "30002020-1",
+        "nombre": "Municipalidad de Ciudad del Este",
+        "region": "Alto Paraná",
+        "departamento": "Alto Paraná"
+      },
+      "categoria": {
+        "scheme": "UNSPSC",
+        "id": "72141115",
+        "description": "Servicios de pavimentación"
+      },
+      "montoEstimado": { "amount": 3200000000, "currency": "PYG" },
+      "tipoProcedimiento": "Licitación por Concurso de Ofertas",
+      "trimestreEstimado": "2026-Q2",
+      "fechaEstimada": "2026-04-01T00:00:00Z",
+      "fechaPublicacion": "2026-01-08T09:00:00Z",
+      "estado": "PROGRAMADO"
+    },
+    {
+      "id": "PAC-2026-000453",
+      "anio": 2026,
+      "nombre": "Provisión de Kits Escolares 2026",
+      "descripcion": "Compra de útiles y textos escolares para instituciones educativas de Itapúa.",
+      "entidad": {
+        "id": "PY-RUC-80017059",
+        "ruc": "80017059-0",
+        "nombre": "Ministerio de Educación y Ciencias",
+        "region": "Itapúa",
+        "departamento": "Itapúa"
+      },
+      "categoria": {
+        "scheme": "UNSPSC",
+        "id": "44121700",
+        "description": "Útiles escolares"
+      },
+      "montoEstimado": { "amount": 950000000, "currency": "PYG" },
+      "tipoProcedimiento": "Contratación Directa",
+      "trimestreEstimado": "2026-Q1",
+      "fechaEstimada": "2026-02-01T00:00:00Z",
+      "fechaPublicacion": "2026-01-05T09:00:00Z",
+      "estado": "CONVOCADO"
+    }
+  ]
+}

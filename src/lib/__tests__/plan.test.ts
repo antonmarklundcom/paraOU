@@ -8,6 +8,7 @@ describe("limitsFor", () => {
     expect(l.fullReasoningPerDay).toBe(3);
     expect(l.allowedAlertFrequencies).toEqual(["WEEKLY"]);
     expect(l.documentAnalysis).toBe(false);
+    expect(l.plannedPurchases).toBe(false);
   });
 
   it("PRO unlocks full reasoning and all alert frequencies but keeps 1 profile", () => {
@@ -15,13 +16,15 @@ describe("limitsFor", () => {
     expect(l.maxProfiles).toBe(1);
     expect(l.fullReasoningPerDay).toBe(Infinity);
     expect(l.allowedAlertFrequencies).toEqual(["INSTANT", "DAILY", "WEEKLY"]);
+    expect(l.plannedPurchases).toBe(false);
   });
 
-  it("BUSINESS unlocks 3 profiles and document analysis", () => {
+  it("BUSINESS unlocks 3 profiles, document analysis and the PAC planned-purchases feed", () => {
     const l = limitsFor("BUSINESS");
     expect(l.maxProfiles).toBe(3);
     expect(l.documentAnalysis).toBe(true);
     expect(l.multiSeat).toBe(true);
+    expect(l.plannedPurchases).toBe(true);
   });
 
   it("AGENCY has no profile cap", () => {

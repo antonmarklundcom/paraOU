@@ -3,7 +3,7 @@ import cron from "node-cron";
 import { prisma } from "../lib/db.js";
 import { logger } from "../lib/log.js";
 import { dncpConfigured } from "../lib/env.js";
-import { reconcileRecent, syncIncremental } from "./sync.js";
+import { reconcileRecent, syncIncremental, syncPlanningIncremental } from "./sync.js";
 import { runAiPass } from "./aiPass.js";
 import { runAlertEngine } from "../lib/alerts/engine.js";
 
@@ -12,7 +12,8 @@ import { runAlertEngine } from "../lib/alerts/engine.js";
  * driven by node-cron. Web latency is never affected because sync runs here, not in
  * request handlers (CLAUDE.md rule 3).
  *
- *  - incremental sync every 30 min (+ AI pass, + INSTANT-frequency alerts)
+ *  - incremental sync every 30 min (tenders + PAC planned purchases, F3) (+ AI
+ *    pass, + INSTANT-frequency alerts)
  *  - nightly reconciliation of the last 3 days at 03:15 America/Asuncion
  *  - daily digest (PHASE-5 #3) at 08:00 America/Asuncion for alertFrequency=DAILY
  *  - weekly digest Mondays 08:00 for alertFrequency=WEEKLY
@@ -49,9 +50,12 @@ async function start() {
   );
 
   // Sync then AI post-pass (Phase 4) then INSTANT alerts (Phase 5): embeddings →
-  // summaries → match funnel → digest for users who chose instant alerts.
+  // summaries → match funnel → digest for users who chose instant alerts. The PAC
+  // (`planificaciones`) sync (F3) rides the same cadence, through the same
+  // DncpClient — a separate SyncState watermark, but never a second client.
   const syncThenAi = async () => {
     await syncIncremental(prisma);
+    await syncPlanningIncremental(prisma);
     await runAiPass();
     await runAlertEngine(["INSTANT"]);
   };

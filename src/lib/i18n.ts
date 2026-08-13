@@ -17,6 +17,7 @@ const es = {
     panel: "Mi panel",
     perfil: "Mi perfil",
     pricing: "Planes",
+    planificacion: "Planificación",
   },
   footer: {
     terms: "Términos",
@@ -252,6 +253,21 @@ const es = {
     alertFrequencyLocked: "Las alertas instantáneas y diarias son para planes pagos.",
     documentAnalysisLocked: "El análisis de pliegos con IA es para el plan Business.",
     cta: "Ver planes",
+  },
+  planificacion: {
+    title: "Planificación (PAC)",
+    subtitle:
+      "Compras que los organismos públicos planean hacer este año, antes de que exista una licitación — enterate primero.",
+    businessOnly: "La planificación anticipada (PAC) es para el plan Business.",
+    signInFirst: "Ingresá para ver las compras planificadas.",
+    empty: "No hay compras planificadas registradas todavía para estos filtros.",
+    estimatedFor: "Estimado para",
+    estimatedAmount: "Monto estimado",
+    category: "Categoría",
+    buyer: "Organismo",
+    quarterLabel: "Trimestre estimado",
+    source: "Fuente: DNCP (Plan Anual de Contrataciones)",
+    disclaimer: "Los organismos pueden modificar, adelantar, atrasar o cancelar estas compras.",
   },
 } as const;
 
