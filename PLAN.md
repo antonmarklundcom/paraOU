@@ -2,8 +2,10 @@
 
 > **Authored by Fable 5** (planning/architecture model) — handoff to **Sonnet 5 / Opus 4.8**
 > for implementation. Last full-repo review: 2026-07-16, `main` @ `ecdc30e`
-> (Phase 6 monetization merged). Status refreshed 2026-08-13: Phase L1 and
-> Phase F items F2/F3/F4 merged; F1 (WhatsApp) is the only Phase F item left.
+> (Phase 6 monetization merged). Status refreshed 2026-08-13: Phase L1 and all
+> four Phase F fast-follows (F1 WhatsApp, F2 multi-profile, F3 PAC
+> early-warning, F4 award-loss notifications) are merged. Phase G (SEO/growth)
+> seeded. Remaining work is Phase L2 (owner-only live verification/ops).
 
 ## Model tiering — who does what
 
@@ -111,11 +113,15 @@ Work `docs/08-launch.md` top to bottom. Agent tasks within it:
 
 Re-rank against real user feedback before building. Current order:
 
-1. **WhatsApp alerts** (F1, Sonnet→Opus if needed): Twilio/360dialog WhatsApp
-   Business API behind a channel abstraction next to `src/lib/email.ts`; digest
-   + instant deadline warnings; plan-gated to Business+. The #1
-   Paraguay-appropriate feature (docs/07) and a Business-tier promise.
-   **Status: not started — the only remaining Phase F item.**
+1. ✅ **WhatsApp alerts** (F1) — merged (PR #15). Twilio WhatsApp Business API
+   behind a provider abstraction (`src/lib/whatsapp/`) and a channel
+   abstraction (`src/lib/alerts/channels.ts`) next to `src/lib/email.ts`;
+   digest + instant deadline-warning templates, signature-verified
+   status/inbound webhook, delivery-state machine with a consecutive-failure
+   cut-off, BAJA/STOP opt-out, OTP opt-in in `/cuenta`, Business+ gated via
+   `plan.ts`. **Runs on the dev transport** — the owner must supply a Twilio
+   account, three Meta-approved templates and the webhook URL
+   (`docs/09-whatsapp.md`) before it sends anything real.
 2. ✅ **Multi-profile switcher UI** (F2, Sonnet) — merged (PR #12). Business/
    Agency users can create/name/switch/delete profiles (`ProfileSwitcher`,
    `x-profile-id`); saved searches and follows are now scoped per-profile.
@@ -126,6 +132,10 @@ Re-rank against real user feedback before building. Current order:
 4. ✅ **"Why did I lose?" award notifications** (F4) — merged (PR #9). A 4th
    alert-engine source fires when a "Voy a ofertar" tender is AWARDED, with
    winner/price/% vs. reference; surfaced on the tender detail page too.
+
+**All four Phase F fast-follows are now merged.** Remaining work is Phase L2
+(owner-only live verification/ops) and Phase G (SEO/growth, seeded — see
+below).
 
 ## Phase G — Growth & content/SEO (ongoing, ~1 session to seed)
 

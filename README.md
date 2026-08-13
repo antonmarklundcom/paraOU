@@ -22,10 +22,11 @@ Stripe billing, Business-tier document analysis, `/admin`, and the launch
 checklist — see [docs/08-launch.md](docs/08-launch.md) and the
 [owner checklist](#launching-owner-must-do) below before going live.
 
-**Post-launch fast-follows (see `PLAN.md` Phase F):** multi-profile switcher
-(F2), PAC early-warning planned-purchase feed (F3), and "¿por qué perdí?"
-award-loss notifications (F4) are merged. WhatsApp alerts (F1) is the one
-fast-follow still outstanding.
+**Post-launch fast-follows (see `PLAN.md` Phase F):** all four are merged —
+WhatsApp alerts (F1, dev-transport only until the owner supplies a live
+Twilio account, see `docs/09-whatsapp.md`), multi-profile switcher (F2), PAC
+early-warning planned-purchase feed (F3), and "¿por qué perdí?" award-loss
+notifications (F4).
 
 | Phase                                    | Status                                                                                |
 | ---------------------------------------- | ------------------------------------------------------------------------------------- |
@@ -35,6 +36,7 @@ fast-follow still outstanding.
 | 4 — AI matching (profiles, funnel, feed) | ✅ built & tested (recorded AI responses — live calls pending billing, see checklist) |
 | 5 — Accounts & alerts                    | ✅ built & tested (dev email transport — live send pending a Resend key)              |
 | 6 — Monetization (plans, Stripe, launch) | ✅ built & tested (test-mode Stripe fixtures — no live account connected yet)         |
+| F1 — WhatsApp alerts                     | ✅ built & tested (dev transport — no Twilio account/templates yet, see docs/09)      |
 
 ### API (Phase 2)
 
@@ -115,9 +117,36 @@ Per docs/03/05: Auth.js v5 with database sessions.
   tiers run on separate cron schedules: `INSTANT` on every 30-min sync tick,
   `DAILY` at 08:00 America/Asuncion, `WEEKLY` Mondays 08:00. Frequency choice is
   plan-gated as of Phase 6 (`src/lib/plan.ts`) — FREE can only pick `WEEKLY`.
-- **`/cuenta`**: locale, alert channel/frequency, GDPR-style delete (cascades
-  through profiles/matches/saved searches/follows/alert logs via the schema's
-  `onDelete: Cascade`).
+- **`/cuenta`**: locale, alert channel/frequency, WhatsApp opt-in, GDPR-style
+  delete (cascades through profiles/matches/saved searches/follows/alert
+  logs/WhatsApp messages via the schema's `onDelete: Cascade`).
+
+### WhatsApp alerts (Phase F1)
+
+A second delivery channel behind the same engine — see **`docs/09-whatsapp.md`**
+for the full design and the go-live checklist.
+
+- **Provider abstraction** (`src/lib/whatsapp/provider.ts`, mirroring
+  `src/lib/ai/provider.ts`): Twilio's WhatsApp Business API over plain `fetch` is
+  the default, 360dialog is an explicit not-implemented stub, and a **dev
+  transport logs the rendered template** when no credentials are set — the whole
+  flow works with no account, exactly like `src/lib/email.ts` without Resend.
+- **Templates**: outbound alerts always land outside WhatsApp's 24h window, so
+  they are pre-approved Meta templates. The exact Spanish bodies the owner must
+  submit live in `src/lib/whatsapp/templates.ts`; their approved ids come from
+  `WHATSAPP_TEMPLATE_*_ID`. One tender → deadline warning; several → digest.
+- **Delivery state**: `POST /api/whatsapp/webhook` (signature-verified against
+  the raw body, like the Stripe webhook) folds `queued→sent→delivered→read` and
+  `failed/undelivered` through a pure state machine that is monotonic,
+  idempotent and reorder-safe (`src/lib/whatsapp/deliveryState.ts`).
+- **Opt-out safety valve**: `WHATSAPP_MAX_DELIVERY_FAILURES` consecutive
+  failures (or one permanently-invalid-number error) marks the number `FAILED`;
+  replying **BAJA/STOP** marks it `OPTED_OUT`. Either way the channel falls back
+  to email instead of going silent, and the engine stops retrying.
+- **Gating**: Business+ via `plan.ts` `whatsappAlerts`, enforced on the settings
+  write and again at delivery time on the *effective* plan.
+- **Dedupe**: `AlertLog` is unique per `(user, tender, channel, reason)`, so each
+  channel gets its own exactly-once guarantee.
 
 ### Plans & billing (Phase 6)
 
@@ -132,6 +161,7 @@ are paywalled:
 | Full match reasoning                  | top 3/day | unlimited            | unlimited            | unlimited            |
 | Alert frequency                       | weekly    | instant/daily/weekly | instant/daily/weekly | instant/daily/weekly |
 | Document analysis ("Analizar pliego") | –         | –                    | ✓ (quota'd/mo)       | ✓                    |
+| WhatsApp alerts (F1)                  | –         | –                    | ✓                    | ✓                    |
 
 - **Stripe** (`src/lib/stripe.ts`, `src/lib/api/billing.ts`): Checkout for
   PRO/BUSINESS × monthly/annual, customer portal for cancel/card-change, a
@@ -233,7 +263,14 @@ Before real users/money touch this:
    Docker Compose bring-up, Resend, backfill + spot-check, backups (with an
    actual restore test), uptime/error monitoring, analytics, and legal pages.
 3. Set `ADMIN_EMAILS` to your real email(s) so `/admin` isn't locked out.
-4. Everything else from the earlier per-phase checklists above still applies
+4. **WhatsApp alerts (F1)**: create a Twilio account, get the WhatsApp sender
+   (sandbox is fine to start), submit the three Spanish templates from
+   `src/lib/whatsapp/templates.ts` for Meta approval, paste their ids +
+   SID/token into `.env`, and register
+   `https://<domain>/api/whatsapp/webhook` as both the status callback and the
+   inbound webhook. Until then the channel logs instead of sending —
+   [docs/09-whatsapp.md](docs/09-whatsapp.md) is the full checklist.
+5. Everything else from the earlier per-phase checklists above still applies
    (Gemini billing, Resend key, `AUTH_SECRET`, DNCP reachability).
 
 CI note: the migration gate uses `prisma migrate deploy` + `prisma migrate status`
@@ -253,6 +290,7 @@ the hand-written pgvector / generated-`tsvector` SQL and would report false drif
 | [docs/06-risks.md](docs/06-risks.md)                         | Known issues, risks, and mitigations                                                   |
 | [docs/07-improvement-ideas.md](docs/07-improvement-ideas.md) | Post-launch roadmap and feature ideas                                                  |
 | [docs/08-launch.md](docs/08-launch.md)                       | Phase 6 launch checklist: VPS setup, Stripe, backups, monitoring, legal                |
+| [docs/09-whatsapp.md](docs/09-whatsapp.md)                   | Phase F1 WhatsApp alerts: design, delivery states, and the go-live checklist            |
 
 ## Build phases (for the coding agent)
 

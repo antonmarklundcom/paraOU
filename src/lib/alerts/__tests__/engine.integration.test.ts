@@ -422,4 +422,100 @@ describe.skipIf(!hasDb)("alert engine (integration)", () => {
       expect(result.sent).toBe(false);
     });
   });
+
+  /**
+   * PHASE-F1: WhatsApp is a second delivery channel behind the same engine, with
+   * its own AlertLog namespace. No credentials in CI, so the WhatsApp dev
+   * transport logs instead of sending — same as the email one.
+   */
+  describe("WhatsApp as a second channel", () => {
+    const businessUser = {
+      plan: "BUSINESS" as const,
+      subscriptionStatus: "active",
+      whatsappPhone: "+595981123456",
+      whatsappStatus: "VERIFIED" as const,
+    };
+
+    it("delivers on both channels and logs each independently", async () => {
+      const user = await seedUser({ ...businessUser, alertChannel: "EMAIL_AND_WHATSAPP" });
+      await seedTender();
+      await prisma.savedSearch.create({
+        data: { userId: user.id, name: "Obras", params: { department: "Itapúa" }, alerting: true },
+      });
+
+      const first = await sendDigestForUser(user.id);
+      expect(first.channels).toEqual([
+        { channel: "email", sent: true, itemCount: 1 },
+        { channel: "whatsapp", sent: true, itemCount: 1 },
+      ]);
+      expect(await prisma.alertLog.count({ where: { userId: user.id, channel: "email" } })).toBe(1);
+      expect(await prisma.alertLog.count({ where: { userId: user.id, channel: "whatsapp" } })).toBe(
+        1,
+      );
+      expect(await prisma.whatsappMessage.count({ where: { userId: user.id } })).toBe(1);
+
+      // Dedupe holds across both channels on the next run.
+      const second = await sendDigestForUser(user.id);
+      expect(second.sent).toBe(false);
+      expect(await prisma.alertLog.count({ where: { userId: user.id } })).toBe(2);
+    });
+
+    it("lets a newly added channel catch up without re-sending on the old one", async () => {
+      const user = await seedUser({ ...businessUser, alertChannel: "EMAIL" });
+      await seedTender();
+      await prisma.savedSearch.create({
+        data: { userId: user.id, name: "Obras", params: { department: "Itapúa" }, alerting: true },
+      });
+      await sendDigestForUser(user.id);
+
+      await prisma.user.update({
+        where: { id: user.id },
+        data: { alertChannel: "EMAIL_AND_WHATSAPP" },
+      });
+      const after = await sendDigestForUser(user.id);
+      expect(after.channels).toEqual([
+        { channel: "email", sent: false, itemCount: 0 },
+        { channel: "whatsapp", sent: true, itemCount: 1 },
+      ]);
+      expect(await prisma.alertLog.count({ where: { userId: user.id, channel: "email" } })).toBe(1);
+    });
+
+    it("withholds WhatsApp below the Business tier", async () => {
+      const user = await seedUser({
+        ...businessUser,
+        plan: "PRO",
+        alertChannel: "EMAIL_AND_WHATSAPP",
+      });
+      await seedTender();
+      await prisma.savedSearch.create({
+        data: { userId: user.id, name: "Obras", params: { department: "Itapúa" }, alerting: true },
+      });
+      const result = await sendDigestForUser(user.id);
+      expect(result.channels.map((c) => c.channel)).toEqual(["email"]);
+      expect(await prisma.whatsappMessage.count({ where: { userId: user.id } })).toBe(0);
+    });
+
+    it("withholds WhatsApp from a number that bounced or opted out", async () => {
+      for (const status of ["FAILED", "OPTED_OUT", "PENDING"] as const) {
+        await resetAll();
+        const user = await seedUser({
+          ...businessUser,
+          whatsappStatus: status,
+          alertChannel: "WHATSAPP",
+        });
+        await seedTender();
+        await prisma.savedSearch.create({
+          data: {
+            userId: user.id,
+            name: "Obras",
+            params: { department: "Itapúa" },
+            alerting: true,
+          },
+        });
+        const result = await sendDigestForUser(user.id);
+        expect(result.sent).toBe(false);
+        expect(await prisma.whatsappMessage.count({ where: { userId: user.id } })).toBe(0);
+      }
+    });
+  });
 });

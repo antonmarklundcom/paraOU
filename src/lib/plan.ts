@@ -24,6 +24,10 @@ export interface PlanLimits {
   documentAnalysis: boolean;
   /** Multi-seat / competitor watchlists — UI-level flag for future work. */
   multiSeat: boolean;
+  /** WhatsApp alert delivery (F1, docs/07 #2). The Business tier has advertised
+   * it since docs/00; WhatsApp Business API messages cost real money per
+   * conversation, so it stays a paid-tier entitlement. */
+  whatsappAlerts: boolean;
   /** PAC early-warning "planned purchases" feed (F3, docs/07 #1) — planned
    * purchases are intelligence (they exist to be sold), unlike the free public
    * Tender record, so this is Business-tier gated. */
@@ -38,6 +42,7 @@ export const PLAN_LIMITS: Record<Plan, PlanLimits> = {
     fullBuyerHistory: false,
     documentAnalysis: false,
     multiSeat: false,
+    whatsappAlerts: false,
     plannedPurchases: false,
   },
   PRO: {
@@ -47,6 +52,7 @@ export const PLAN_LIMITS: Record<Plan, PlanLimits> = {
     fullBuyerHistory: true,
     documentAnalysis: false,
     multiSeat: false,
+    whatsappAlerts: false,
     plannedPurchases: false,
   },
   BUSINESS: {
@@ -56,6 +62,7 @@ export const PLAN_LIMITS: Record<Plan, PlanLimits> = {
     fullBuyerHistory: true,
     documentAnalysis: true,
     multiSeat: true,
+    whatsappAlerts: true,
     plannedPurchases: true,
   },
   AGENCY: {
@@ -65,6 +72,7 @@ export const PLAN_LIMITS: Record<Plan, PlanLimits> = {
     fullBuyerHistory: true,
     documentAnalysis: true,
     multiSeat: true,
+    whatsappAlerts: true,
     plannedPurchases: true,
   },
 };

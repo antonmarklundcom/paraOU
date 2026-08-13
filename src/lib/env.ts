@@ -75,6 +75,36 @@ const schema = z.object({
   ALERT_MIN_MATCH_SCORE: z.coerce.number().int().min(0).max(100).default(70),
   ALERT_DIGEST_MAX_ITEMS: z.coerce.number().int().positive().default(10),
 
+  // ── WhatsApp alerts (Phase F1) ───────────────────────────────────────
+  // Twilio's WhatsApp Business API is the default provider (sandbox-testable
+  // without a Meta business account); 360dialog is the documented alternative.
+  // Every value is optional so the app builds without an account — when the
+  // active provider is unconfigured, sends go through the dev transport that
+  // logs instead of sending (same convention as RESEND_API_KEY, CLAUDE.md #2).
+  WHATSAPP_PROVIDER: z.enum(["twilio", "dialog360"]).default("twilio"),
+  TWILIO_ACCOUNT_SID: z.string().optional(),
+  TWILIO_AUTH_TOKEN: z.string().optional(),
+  // The WhatsApp-enabled sender in E.164, e.g. +14155238886 (Twilio sandbox).
+  TWILIO_WHATSAPP_FROM: z.string().optional(),
+  TWILIO_API_BASE: z.string().url().default("https://api.twilio.com"),
+  DIALOG360_API_KEY: z.string().optional(),
+  DIALOG360_API_BASE: z.string().url().default("https://waba-v2.360dialog.io"),
+  // Public URL of /api/whatsapp/webhook. Twilio signs the exact URL it called,
+  // so behind a reverse proxy the request URL we see may differ — set this to
+  // the canonical public one. Also sent as the per-message StatusCallback.
+  WHATSAPP_WEBHOOK_URL: z.string().url().optional(),
+  // Approved template ids at the provider (Twilio Content SIDs, "HX…"). Meta
+  // must approve each template before it can be sent outside the 24h window.
+  WHATSAPP_TEMPLATE_DIGEST_ID: z.string().optional(),
+  WHATSAPP_TEMPLATE_DEADLINE_ID: z.string().optional(),
+  WHATSAPP_TEMPLATE_VERIFICATION_ID: z.string().optional(),
+  // Consecutive delivery failures before a number is marked FAILED and skipped
+  // (PHASE-F1 #3: a bouncing number must never be retried forever).
+  WHATSAPP_MAX_DELIVERY_FAILURES: z.coerce.number().int().positive().default(3),
+  // Opt-in OTP lifetime and attempt budget.
+  WHATSAPP_OTP_TTL_MINUTES: z.coerce.number().int().positive().default(10),
+  WHATSAPP_OTP_MAX_ATTEMPTS: z.coerce.number().int().positive().default(5),
+
   // ── Billing (Phase 6) ────────────────────────────────────────────────
   // Stripe. Optional so the app builds without a Stripe account; /precios and
   // checkout routes degrade to "contact us" when unset (CLAUDE.md rule 2).
@@ -134,6 +164,18 @@ export function aiConfigured(): boolean {
 /** True when Resend is configured; false => dev transport (console log). */
 export function emailConfigured(): boolean {
   return Boolean(env.RESEND_API_KEY);
+}
+
+/**
+ * True when the active WhatsApp provider has credentials; false => dev
+ * transport (logs the rendered template instead of sending). Template ids are
+ * NOT part of this check — a configured account with a missing template id is a
+ * per-template error the caller surfaces, not a reason to fake the whole channel.
+ */
+export function whatsappConfigured(): boolean {
+  return env.WHATSAPP_PROVIDER === "twilio"
+    ? Boolean(env.TWILIO_ACCOUNT_SID && env.TWILIO_AUTH_TOKEN && env.TWILIO_WHATSAPP_FROM)
+    : Boolean(env.DIALOG360_API_KEY);
 }
 
 /** True when Google OAuth creds are present (optional per docs/05). */

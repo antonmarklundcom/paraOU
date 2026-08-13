@@ -9,6 +9,7 @@ describe("limitsFor", () => {
     expect(l.allowedAlertFrequencies).toEqual(["WEEKLY"]);
     expect(l.documentAnalysis).toBe(false);
     expect(l.plannedPurchases).toBe(false);
+    expect(l.whatsappAlerts).toBe(false);
   });
 
   it("PRO unlocks full reasoning and all alert frequencies but keeps 1 profile", () => {
@@ -17,18 +18,22 @@ describe("limitsFor", () => {
     expect(l.fullReasoningPerDay).toBe(Infinity);
     expect(l.allowedAlertFrequencies).toEqual(["INSTANT", "DAILY", "WEEKLY"]);
     expect(l.plannedPurchases).toBe(false);
+    // WhatsApp is the Business-tier promise (docs/00), not a Pro feature.
+    expect(l.whatsappAlerts).toBe(false);
   });
 
-  it("BUSINESS unlocks 3 profiles, document analysis and the PAC planned-purchases feed", () => {
+  it("BUSINESS unlocks 3 profiles, document analysis, PAC and WhatsApp alerts", () => {
     const l = limitsFor("BUSINESS");
     expect(l.maxProfiles).toBe(3);
     expect(l.documentAnalysis).toBe(true);
     expect(l.multiSeat).toBe(true);
     expect(l.plannedPurchases).toBe(true);
+    expect(l.whatsappAlerts).toBe(true);
   });
 
-  it("AGENCY has no profile cap", () => {
+  it("AGENCY has no profile cap and keeps every Business entitlement", () => {
     expect(limitsFor("AGENCY").maxProfiles).toBe(Infinity);
+    expect(limitsFor("AGENCY").whatsappAlerts).toBe(true);
   });
 
   it("every plan enum value has an entry", () => {
