@@ -4,7 +4,7 @@ import { clearCache } from "../cache.js";
 import { searchTenders, getTenderDetail, type TenderQuery } from "../tenders.js";
 import { getBuyerProfile, listBuyers } from "../buyers.js";
 import { getSupplierProfile } from "../suppliers.js";
-import { getFilterOptions } from "../meta.js";
+import { getFilterOptions, getCategoryDepartmentCombos } from "../meta.js";
 import { seedApiFixtures } from "./seed.js";
 
 const hasDb = Boolean(process.env.DATABASE_URL) && process.env.SKIP_DB_TESTS !== "1";
@@ -171,5 +171,14 @@ describe.skipIf(!hasDb)("tenders API (integration)", () => {
     expect(f.statuses.find((s) => s.value === "OPEN")?.count).toBe(4);
     expect(f.departments.find((d) => d.value === "Central")).toBeTruthy();
     expect(f.categories.length).toBeGreaterThan(0);
+  });
+
+  // ── SEO landing pages (PLAN.md Phase G) ─────────────────────────────────────
+  it("category x department combos only include pairs with real tenders", async () => {
+    const combos = await getCategoryDepartmentCombos();
+    const altoParana = combos.filter((c) => c.department === "Alto Paraná");
+    // t-002 (72141115) and t-007 (72141100) — both in Alto Paraná.
+    expect(altoParana.map((c) => c.categoryCode).sort()).toEqual(["72141100", "72141115"]);
+    for (const c of combos) expect(c.count).toBeGreaterThan(0);
   });
 });

@@ -6,6 +6,7 @@ import { ThemeToggle } from "@/components/ThemeToggle";
 import { AuthProvider } from "@/components/AuthProvider";
 import { AuthHeader } from "@/components/AuthHeader";
 import { ClaimProfileOnLogin } from "@/components/ClaimProfileOnLogin";
+import { FreshnessBadge } from "@/components/FreshnessBadge";
 
 const description = "Buscá y filtrá todas las licitaciones públicas de Paraguay (DNCP). Fuente: DNCP.";
 
@@ -53,6 +54,9 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
                 <Link href="/licitaciones" className="hover:text-primary">
                   {t.nav.tenders}
                 </Link>
+                <Link href="/observatorio" className="hidden hover:text-primary sm:inline">
+                  {t.nav.observatorio}
+                </Link>
                 <Link href="/panel" className="hover:text-primary">
                   {t.nav.panel}
                 </Link>
@@ -70,10 +74,14 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
           {children}
           <footer className="mt-16 border-t border-border">
             <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-2 px-4 py-6 text-xs text-muted-foreground">
-              <span>
+              <span className="flex flex-wrap items-center gap-x-3 gap-y-1">
                 {t.overview.source} · {t.tagline}
+                <FreshnessBadge />
               </span>
               <span className="flex gap-4">
+                <Link href="/observatorio" className="hover:text-primary hover:underline">
+                  {t.nav.observatorio}
+                </Link>
                 <Link href="/terminos" className="hover:text-primary hover:underline">
                   {t.footer.terms}
                 </Link>

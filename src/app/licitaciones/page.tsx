@@ -8,6 +8,7 @@ import { serialize, type RawParams } from "@/lib/urlParams";
 import { FilterRail, SortControl, ActiveChips } from "@/components/overview";
 import { TenderList } from "@/components/TenderList";
 import { SaveSearchButton } from "@/components/SaveSearchButton";
+import { FreshnessBadge } from "@/components/FreshnessBadge";
 
 export const dynamic = "force-dynamic";
 
@@ -43,9 +44,12 @@ export default async function LicitacionesPage({
   return (
     <main className="mx-auto max-w-6xl px-4 py-6">
       <h1 className="text-2xl font-bold">{t.overview.title}</h1>
-      <p className="mt-1 text-sm text-muted-foreground">
-        {count} {noun}
-      </p>
+      <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted-foreground">
+        <span>
+          {count} {noun}
+        </span>
+        <FreshnessBadge />
+      </div>
 
       {status.fixtures && (
         <div className="mt-4 rounded-md border border-status-closing/40 bg-status-closing/10 px-3 py-2 text-sm text-status-closing">

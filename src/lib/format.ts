@@ -85,3 +85,25 @@ export function deadlinePhrase(days: number | null | undefined): string {
   if (days === 1) return "Cierra mañana";
   return `Cierra en ${days} días`;
 }
+
+/**
+ * "hace 12 min" / "hace 3 h" / "hace 2 d" — relative age for the data-freshness
+ * badge (PLAN.md Phase G, docs/07 #product-quality). Deterministic given `now`
+ * (defaults to the real clock) so it's testable without faking timers.
+ */
+export function relativeAgeEs(
+  date: Date | string | null | undefined,
+  now: number = Date.now(),
+): string {
+  if (!date) return "sin datos aún";
+  const d = typeof date === "string" ? new Date(date) : date;
+  const ms = now - d.getTime();
+  if (!Number.isFinite(ms)) return "sin datos aún";
+  if (ms < 60_000) return "hace instantes";
+  const minutes = Math.round(ms / 60_000);
+  if (minutes < 60) return `hace ${minutes} min`;
+  const hours = Math.round(minutes / 60);
+  if (hours < 24) return `hace ${hours} h`;
+  const days = Math.round(hours / 24);
+  return `hace ${days} d`;
+}

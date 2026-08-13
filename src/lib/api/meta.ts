@@ -34,3 +34,25 @@ export async function getFilterOptions() {
     return { statuses, departments, methods, categories };
   });
 }
+
+/**
+ * Category × department pairs with real tenders, for the SEO combo landing pages
+ * (`/licitaciones/categoria/[slug]/[deptSlug]`, PLAN.md Phase G). Capped and cached
+ * like `getFilterOptions` — only pairs that actually have data get a page, so the
+ * combo pages are never thin/empty content.
+ */
+export async function getCategoryDepartmentCombos(limit = 300) {
+  return cached(`meta:combos:${limit}`, HOUR, async () => {
+    return prisma.$queryRaw<
+      { categoryCode: string; categoryName: string | null; department: string; count: number }[]
+    >(Prisma.sql`
+      SELECT "categoryCode", max("categoryName") AS "categoryName", "department",
+             count(*)::int AS count
+      FROM "Tender"
+      WHERE "categoryCode" IS NOT NULL AND "department" IS NOT NULL
+      GROUP BY "categoryCode", "department"
+      ORDER BY count DESC
+      LIMIT ${limit}
+    `);
+  });
+}
