@@ -8,6 +8,10 @@ import { ApiError } from "./http.js";
  * Saved searches (PHASE-5 #2): "Guardar búsqueda" from /licitaciones serializes
  * filter state → SavedSearch; managed (rename, toggle alert, delete) from /panel.
  * Requires a signed-in user — no anonymous equivalent (unlike CompanyProfile).
+ *
+ * Phase F2 (multi-profile): each search is scoped to the account's *active*
+ * CompanyProfile (nullable — pre-F2 rows and accounts with no profile yet stay
+ * `profileId: null`, i.e. account-wide).
  */
 
 export const savedSearchBodySchema = z.object({
@@ -24,16 +28,23 @@ export async function requireUserId(): Promise<string> {
   return session.user.id;
 }
 
-export async function listSavedSearches(userId: string): Promise<SavedSearch[]> {
-  return prisma.savedSearch.findMany({ where: { userId }, orderBy: { createdAt: "desc" } });
+export async function listSavedSearches(
+  userId: string,
+  profileId: string | null,
+): Promise<SavedSearch[]> {
+  return prisma.savedSearch.findMany({
+    where: { userId, profileId },
+    orderBy: { createdAt: "desc" },
+  });
 }
 
 export async function createSavedSearch(
   userId: string,
+  profileId: string | null,
   body: z.infer<typeof savedSearchBodySchema>,
 ): Promise<SavedSearch> {
   return prisma.savedSearch.create({
-    data: { userId, name: body.name, params: body.params },
+    data: { userId, profileId, name: body.name, params: body.params },
   });
 }
 

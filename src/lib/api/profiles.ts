@@ -30,21 +30,46 @@ export function profileToken(req: Request): string {
   return token;
 }
 
+/** All profiles owned by a user, oldest first (the default/"first" profile). */
+export async function listProfiles(userId: string): Promise<CompanyProfile[]> {
+  return prisma.companyProfile.findMany({ where: { userId }, orderBy: { createdAt: "asc" } });
+}
+
 /**
- * Resolve the caller's profile: a logged-in user's owned profile takes priority
- * (Phase 5), falling back to the anonymous `x-profile-token` header (Phase 4) for
- * visitors who haven't signed in yet. One profile per user in this MVP — the
- * schema allows more later, but the wizard/panel only ever operate on one.
+ * Resolve which of a signed-in user's profiles is "active" (Phase F2:
+ * multi-profile switcher). The browser sends the currently-selected profile id
+ * in `x-profile-id`; it's only honored when it actually belongs to this user
+ * (never trust a raw id across accounts). Falls back to the oldest profile —
+ * same default as before F2, so single-profile accounts are unaffected.
+ * Returns null if the user has no profile yet.
+ */
+export async function resolveActiveProfileId(
+  userId: string,
+  req: Request,
+): Promise<string | null> {
+  const profiles = await listProfiles(userId);
+  const oldest = profiles[0];
+  if (!oldest) return null;
+  const requested = req.headers.get("x-profile-id");
+  if (requested && profiles.some((p) => p.id === requested)) return requested;
+  return oldest.id;
+}
+
+/**
+ * Resolve the caller's profile: a logged-in user's *active* profile takes
+ * priority (Phase 5 + F2's `x-profile-id` switcher header), falling back to the
+ * anonymous `x-profile-token` header (Phase 4) for visitors who haven't signed
+ * in yet.
  */
 export async function requireProfile(req: Request): Promise<CompanyProfile> {
   const { auth } = await import("../auth.js");
   const session = await auth();
   if (session?.user?.id) {
-    const owned = await prisma.companyProfile.findFirst({
-      where: { userId: session.user.id },
-      orderBy: { createdAt: "asc" },
-    });
-    if (owned) return owned;
+    const activeId = await resolveActiveProfileId(session.user.id, req);
+    if (activeId) {
+      const owned = await prisma.companyProfile.findUnique({ where: { id: activeId } });
+      if (owned) return owned;
+    }
   }
   const profile = await prisma.companyProfile.findUnique({
     where: { anonToken: profileToken(req) },
@@ -88,10 +113,8 @@ function toData(body: ProfileBody) {
 /**
  * Anonymous visitors always get a fresh profile (they have none yet by
  * definition). Signed-in users are capped by their plan's `maxProfiles`
- * (PHASE-6 #1) — multi-profile *switching* in the UI is still Phase 4's
- * single-profile wizard/panel, so BUSINESS's extra profile slots exist at the
- * data/API level today; a profile-switcher UI is a fast-follow, not a Phase 6
- * blocker (data isn't gated, only AI intelligence is).
+ * (PHASE-6 #1) — the /perfil + /panel switcher (Phase F2) is how BUSINESS/AGENCY
+ * accounts actually reach a 2nd/3rd profile through the UI.
  */
 export async function createProfile(body: ProfileBody): Promise<CompanyProfile> {
   const { auth } = await import("../auth.js");
@@ -118,6 +141,25 @@ export async function updateProfile(id: string, body: ProfileBody): Promise<Comp
     where: { id },
     data: { ...toData(body), version: { increment: 1 } },
   });
+}
+
+/**
+ * Delete an owned profile (Phase F2). Refuses to remove an account's last
+ * profile — the switcher only ever deletes "additional" profiles, never leaves
+ * a signed-in user with zero (that would silently break /panel + saved
+ * searches/follows, which fall back to account-wide only when there truly is
+ * no profile). SavedSearch/FollowedTender rows scoped to it cascade-delete.
+ */
+export async function deleteProfile(userId: string, profileId: string): Promise<void> {
+  const owned = await prisma.companyProfile.findUnique({ where: { id: profileId } });
+  if (!owned || owned.userId !== userId) {
+    throw new ApiError(404, "PROFILE_NOT_FOUND", "No profile with this id");
+  }
+  const count = await prisma.companyProfile.count({ where: { userId } });
+  if (count <= 1) {
+    throw new ApiError(400, "LAST_PROFILE", "Can't delete your only company profile");
+  }
+  await prisma.companyProfile.delete({ where: { id: profileId } });
 }
 
 /** Public (client-safe) shape of a profile — never leaks anonToken of others. */

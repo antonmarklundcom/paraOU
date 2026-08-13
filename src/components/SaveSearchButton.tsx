@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useSession } from "next-auth/react";
 import Link from "next/link";
 import { dict } from "@/lib/i18n";
+import { profileFetch } from "@/lib/profileStore";
 
 /**
  * "Guardar búsqueda" (PHASE-5 #2): serializes the current URL's query string into
@@ -19,9 +20,8 @@ export function SaveSearchButton() {
     if (!name) return;
     setState("saving");
     const params = Object.fromEntries(new URL(window.location.href).searchParams.entries());
-    const res = await fetch("/api/saved-searches", {
+    const res = await profileFetch("/api/saved-searches", {
       method: "POST",
-      headers: { "content-type": "application/json" },
       body: JSON.stringify({ name, params }),
     });
     setState(res.ok ? "saved" : "idle");

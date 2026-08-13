@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
 import { dict } from "@/lib/i18n";
 import { cn } from "@/lib/cn";
+import { profileFetch } from "@/lib/profileStore";
 
 /**
  * Follow / bid / dismiss actions. 🔔 follow persists to the DB for signed-in
@@ -22,7 +23,7 @@ export function TenderActions({ ocid, hasDeadline }: { ocid: string; hasDeadline
 
   useEffect(() => {
     if (status === "authenticated") {
-      void fetch(`/api/follow/${encodeURIComponent(ocid)}`)
+      void profileFetch(`/api/follow/${encodeURIComponent(ocid)}`)
         .then((r) => r.json())
         .then((r) => setFollowing(Boolean(r.data?.following)))
         .catch(() => {});
@@ -42,7 +43,9 @@ export function TenderActions({ ocid, hasDeadline }: { ocid: string; hasDeadline
 
   async function toggleFollow() {
     if (status === "authenticated") {
-      const res = await fetch(`/api/follow/${encodeURIComponent(ocid)}`, { method: "POST" });
+      const res = await profileFetch(`/api/follow/${encodeURIComponent(ocid)}`, {
+        method: "POST",
+      });
       if (res.ok) setFollowing(Boolean((await res.json()).data?.following));
       return;
     }
