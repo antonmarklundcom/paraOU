@@ -1,5 +1,11 @@
 import { describe, it, expect } from "vitest";
-import { formatGs, formatUsdApprox, formatDate, deadlinePhrase } from "../format.js";
+import {
+  formatGs,
+  formatUsdApprox,
+  formatDate,
+  deadlinePhrase,
+  referencePercentLabel,
+} from "../format.js";
 
 describe("formatGs", () => {
   it("scales guaraní amounts compactly (es-PY)", () => {
@@ -26,6 +32,22 @@ describe("formatDate (America/Asuncion, not UTC)", () => {
     // A UTC render would say 24 — this proves we localize.
     const s = formatDate("2024-07-24T02:00:00Z");
     expect(s).toMatch(/23\s+jul/i); // Asunción day; a UTC render would say "24 jul"
+  });
+});
+
+describe("referencePercentLabel (PHASE-F4 award notifications)", () => {
+  it("says how far below the reference a winning award landed", () => {
+    expect(referencePercentLabel("800000", "1000000")).toBe("20% por debajo de la referencia");
+  });
+  it("says when it landed above the reference", () => {
+    expect(referencePercentLabel("1200000", "1000000")).toBe("20% por encima de la referencia");
+  });
+  it("returns null with no reference amount to compare against", () => {
+    expect(referencePercentLabel("800000", null)).toBeNull();
+    expect(referencePercentLabel("800000", undefined)).toBeNull();
+  });
+  it("returns null with no winning amount", () => {
+    expect(referencePercentLabel(null, "1000000")).toBeNull();
   });
 });
 
