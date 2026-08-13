@@ -5,6 +5,7 @@ import {
   formatDate,
   deadlinePhrase,
   referencePercentLabel,
+  relativeAgeEs,
 } from "../format.js";
 
 describe("formatGs", () => {
@@ -58,5 +59,24 @@ describe("deadlinePhrase", () => {
     expect(deadlinePhrase(0)).toBe("Cierra hoy");
     expect(deadlinePhrase(1)).toBe("Cierra mañana");
     expect(deadlinePhrase(9)).toBe("Cierra en 9 días");
+  });
+});
+
+describe("relativeAgeEs (data-freshness badge, PLAN.md Phase G)", () => {
+  const now = new Date("2024-06-01T12:00:00Z").getTime();
+  it("handles missing data", () => {
+    expect(relativeAgeEs(null, now)).toBe("sin datos aún");
+    expect(relativeAgeEs(undefined, now)).toBe("sin datos aún");
+  });
+  it("says 'hace instantes' for under a minute", () => {
+    expect(relativeAgeEs(new Date(now - 30_000).toISOString(), now)).toBe("hace instantes");
+  });
+  it("phrases minutes, hours, and days", () => {
+    expect(relativeAgeEs(new Date(now - 12 * 60_000).toISOString(), now)).toBe("hace 12 min");
+    expect(relativeAgeEs(new Date(now - 3 * 3_600_000).toISOString(), now)).toBe("hace 3 h");
+    expect(relativeAgeEs(new Date(now - 2 * 86_400_000).toISOString(), now)).toBe("hace 2 d");
+  });
+  it("accepts a Date object directly", () => {
+    expect(relativeAgeEs(new Date(now - 5 * 60_000), now)).toBe("hace 5 min");
   });
 });

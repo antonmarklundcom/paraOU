@@ -3,6 +3,7 @@ import { getHomeStats } from "@/lib/api/stats";
 import { getFilterOptions } from "@/lib/api/meta";
 import { dict } from "@/lib/i18n";
 import { Card, Tag } from "@/components/ui";
+import { FreshnessBadge } from "@/components/FreshnessBadge";
 import { formatGs } from "@/lib/format";
 
 export const dynamic = "force-dynamic";
@@ -18,6 +19,9 @@ export default async function Home() {
           {t.landing.heroLead} <span className="text-primary">{t.landing.heroEmph}</span>
         </h1>
         <p className="mx-auto mt-3 max-w-2xl text-muted-foreground">{t.tagline}</p>
+        <div className="mt-2 flex justify-center">
+          <FreshnessBadge />
+        </div>
         <div className="mt-6">
           <Link
             href="/licitaciones"
@@ -53,6 +57,12 @@ export default async function Home() {
           </div>
         </section>
       )}
+
+      <section className="mt-8 text-center">
+        <Link href="/observatorio" className="text-sm text-primary hover:underline">
+          {t.observatorio.title} →
+        </Link>
+      </section>
     </main>
   );
 }
