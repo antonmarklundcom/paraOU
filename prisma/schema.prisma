@@ -242,8 +242,13 @@ enum Plan {
   AGENCY
 }
 
+// PHASE-F1: WhatsApp joins email as a second delivery channel. The enum names the
+// *combination* rather than being a set, because a user picks one option in
+// /cuenta; `channelsFor()` in src/lib/alerts/channels.ts expands it.
 enum AlertChannel {
   EMAIL
+  WHATSAPP
+  EMAIL_AND_WHATSAPP
   NONE
 }
 
@@ -251,6 +256,33 @@ enum AlertFrequency {
   INSTANT
   DAILY
   WEEKLY
+}
+
+// PHASE-F1: lifecycle of a user's WhatsApp number as an alert destination.
+// UNVERIFIED  — no number, or a number that never completed the OTP step
+// PENDING     — OTP sent, awaiting the code
+// VERIFIED    — deliverable; the only state the alert engine will send to
+// FAILED      — too many consecutive provider delivery failures (bad/blocked number)
+// OPTED_OUT   — the user replied STOP/BAJA on WhatsApp, or removed the number here
+enum WhatsappStatus {
+  UNVERIFIED
+  PENDING
+  VERIFIED
+  FAILED
+  OPTED_OUT
+}
+
+// PHASE-F1: WhatsApp Business API delivery is async and stateful. Providers report
+// state transitions over a webhook, out of order and sometimes more than once, so
+// each state has a monotonic rank (src/lib/whatsapp/deliveryState.ts) and a late
+// `sent` can never overwrite an already-recorded `read`.
+enum WhatsappDeliveryStatus {
+  QUEUED
+  SENT
+  DELIVERED
+  READ
+  UNDELIVERED
+  FAILED
 }
 
 // Auth.js v5 PrismaAdapter shape (email magic-link + Google OAuth). Field names
@@ -277,6 +309,23 @@ model User {
   manualBilling          Boolean        @default(false)
   emailBounced  Boolean        @default(false) // set on hard bounce; stops sends
 
+  // ── PHASE-F1: WhatsApp alert channel (Business+ only, see plan.ts) ──────
+  // E.164 with the leading "+", e.g. +595981123456. Never store the provider's
+  // "whatsapp:" prefix — that is a transport detail of src/lib/whatsapp/.
+  whatsappPhone   String?
+  whatsappStatus  WhatsappStatus @default(UNVERIFIED)
+  // OTP opt-in (PHASE-F1 #5). The code is short-lived and single-purpose; it is
+  // cleared on success, expiry, or too many attempts.
+  whatsappOtpHash      String?
+  whatsappOtpExpiresAt DateTime?
+  whatsappOtpAttempts  Int       @default(0)
+  // Consecutive failed deliveries reported by the provider webhook. At
+  // WHATSAPP_MAX_DELIVERY_FAILURES the status flips to FAILED and sends stop —
+  // a bouncing number must never be retried forever (PHASE-F1 #3).
+  whatsappFailureCount Int       @default(0)
+  whatsappVerifiedAt   DateTime?
+  whatsappOptOutAt     DateTime?
+
   accounts      Account[]
   sessions      Session[]
   profiles      CompanyProfile[]
@@ -284,6 +333,7 @@ model User {
   followedTenders FollowedTender[]
   alertLogs     AlertLog[]
   documentAnalyses DocumentAnalysis[]
+  whatsappMessages WhatsappMessage[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -382,6 +432,32 @@ model AlertLog {
 
   @@unique([userId, tenderId, channel, reason])
   @@index([userId, sentAt])
+}
+
+// PHASE-F1: one row per outbound WhatsApp message, so delivery state is
+// auditable and a webhook can find the message it is reporting on. The provider
+// id is the join key (Twilio MessageSid / 360dialog message id); it is nullable
+// only for the brief window before the send API responds, and for the dev
+// transport which has no real ids.
+model WhatsappMessage {
+  id                String                 @id @default(cuid())
+  userId            String
+  providerName      String // "twilio" | "dev" | ...
+  providerMessageId String?                @unique
+  toPhone           String
+  template          String // template key (see src/lib/whatsapp/templates.ts)
+  purpose           String // "digest" | "deadline" | "verification"
+  status            WhatsappDeliveryStatus @default(QUEUED)
+  errorCode         String?
+  errorMessage      String?
+  itemCount         Int                    @default(0)
+  createdAt         DateTime               @default(now())
+  statusUpdatedAt   DateTime               @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+  @@index([status])
 }
 
 // ── Phase 6: billing, document analysis, admin ──────────────────────

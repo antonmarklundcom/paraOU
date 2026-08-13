@@ -6,11 +6,12 @@ import { signOut } from "next-auth/react";
 import { dict } from "@/lib/i18n";
 import { cn } from "@/lib/cn";
 import { limitsFor } from "@/lib/plan";
+import { WhatsappSettings, type WhatsappState } from "./WhatsappSettings";
 
 interface Prefs {
   email: string;
   locale: "es" | "en";
-  alertChannel: "EMAIL" | "NONE";
+  alertChannel: "EMAIL" | "WHATSAPP" | "EMAIL_AND_WHATSAPP" | "NONE";
   alertFrequency: "INSTANT" | "DAILY" | "WEEKLY";
   plan: "FREE" | "PRO" | "BUSINESS" | "AGENCY";
 }
@@ -19,6 +20,7 @@ interface Prefs {
 export function AccountForm() {
   const t = dict().cuenta;
   const [prefs, setPrefs] = useState<Prefs | null>(null);
+  const [whatsapp, setWhatsapp] = useState<WhatsappState | null>(null);
   const [saved, setSaved] = useState(false);
   const [confirmWord, setConfirmWord] = useState("");
   const [deleting, setDeleting] = useState(false);
@@ -28,6 +30,10 @@ export function AccountForm() {
     void fetch("/api/account")
       .then((r) => r.json())
       .then((r) => setPrefs(r.data));
+    void fetch("/api/account/whatsapp")
+      .then((r) => r.json())
+      .then((r) => setWhatsapp(r.data ?? null))
+      .catch(() => setWhatsapp(null));
   }, []);
 
   async function save() {
@@ -71,6 +77,9 @@ export function AccountForm() {
 
   const select = "rounded-md border border-border bg-background px-3 py-2 text-sm";
   const allowedFrequencies = limitsFor(prefs.plan).allowedAlertFrequencies;
+  // WhatsApp is only selectable once the number completed the opt-in — the API
+  // rejects it otherwise (src/lib/api/account.ts), so don't offer a dead option.
+  const whatsappReady = whatsapp?.allowedByPlan === true && whatsapp.status === "VERIFIED";
 
   return (
     <div className="space-y-6">
@@ -120,8 +129,19 @@ export function AccountForm() {
             }
           >
             <option value="EMAIL">{t.alertChannelEmail}</option>
+            <option value="WHATSAPP" disabled={!whatsappReady}>
+              {t.alertChannelWhatsapp}
+            </option>
+            <option value="EMAIL_AND_WHATSAPP" disabled={!whatsappReady}>
+              {t.alertChannelBoth}
+            </option>
             <option value="NONE">{t.alertChannelNone}</option>
           </select>
+          {!whatsappReady && (
+            <p className="mt-1 text-xs text-muted-foreground">
+              {whatsapp?.allowedByPlan === false ? dict().upgrade.whatsappLocked : t.whatsappHint}
+            </p>
+          )}
         </label>
 
         <label className="block">
@@ -159,6 +179,24 @@ export function AccountForm() {
           {saved ? t.saved : t.save}
         </button>
       </div>
+
+      {whatsapp && (
+        <WhatsappSettings
+          state={whatsapp}
+          onChange={(next) => {
+            setWhatsapp(next);
+            // Losing the number invalidates a WhatsApp-bearing preference; the
+            // server already fell back to email, so mirror that here instead of
+            // leaving the form showing a channel that no longer exists.
+            if (
+              next.status !== "VERIFIED" &&
+              (prefs.alertChannel === "WHATSAPP" || prefs.alertChannel === "EMAIL_AND_WHATSAPP")
+            ) {
+              setPrefs({ ...prefs, alertChannel: "EMAIL" });
+            }
+          }}
+        />
+      )}
 
       <div className="space-y-3 rounded-lg border border-status-closed/40 p-4">
         <h2 className="font-semibold text-status-closed">{t.dangerZone}</h2>

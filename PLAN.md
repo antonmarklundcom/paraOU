@@ -108,10 +108,15 @@ Work `docs/08-launch.md` top to bottom. Agent tasks within it:
 
 Re-rank against real user feedback before building. Current order:
 
-1. **WhatsApp alerts** (F1, Sonnet→Opus if needed): Twilio/360dialog WhatsApp
-   Business API behind a channel abstraction next to `src/lib/email.ts`; digest
-   + instant deadline warnings; plan-gated to Business+. The #1
-   Paraguay-appropriate feature (docs/07) and a Business-tier promise.
+1. ~~**WhatsApp alerts** (F1)~~ — **built**: Twilio WhatsApp Business API behind
+   a provider abstraction (`src/lib/whatsapp/`) and a channel abstraction
+   (`src/lib/alerts/channels.ts`) next to `src/lib/email.ts`; digest + instant
+   deadline-warning templates, signature-verified status/inbound webhook,
+   delivery-state machine with a consecutive-failure cut-off, BAJA/STOP opt-out,
+   OTP opt-in in `/cuenta`, Business+ gated via `plan.ts`. **Runs on the dev
+   transport** — the owner must supply a Twilio account, three Meta-approved
+   templates and the webhook URL (`docs/09-whatsapp.md`) before it sends
+   anything real.
 2. **Multi-profile switcher UI** (F2, Sonnet): `/perfil` + `/panel` currently
    assume one profile; data model + `plan.ts` `maxProfiles` already support 3
    (Business) / unlimited (Agency). Unblocks honest Business-tier copy.

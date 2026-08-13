@@ -4,6 +4,7 @@ import { searchTenders, tenderQuerySchema } from "../api/tenders.js";
 import { SHOW_THRESHOLD } from "../ai/match.js";
 import { formatGs, referencePercentLabel } from "../format.js";
 import { pickDecidingAward } from "../awards.js";
+import type { DeliveryChannel } from "./channels.js";
 
 /**
  * Alert candidate collection (PHASE-5 #3, PHASE-F4): for a user, gather tenders
@@ -39,10 +40,14 @@ function reasonRank(reason: AlertReason): number {
   return REASON_PRIORITY.indexOf(reason);
 }
 
-async function alreadySent(userId: string, tenderIds: string[]): Promise<Set<string>> {
+async function alreadySent(
+  userId: string,
+  channel: DeliveryChannel,
+  tenderIds: string[],
+): Promise<Set<string>> {
   if (tenderIds.length === 0) return new Set();
   const rows = await prisma.alertLog.findMany({
-    where: { userId, channel: "email", tenderId: { in: tenderIds } },
+    where: { userId, channel, tenderId: { in: tenderIds } },
     select: { tenderId: true, reason: true },
   });
   return new Set(rows.map((r) => `${r.tenderId}:${r.reason}`));
@@ -200,8 +205,16 @@ async function fromAwards(userId: string): Promise<AlertCandidate[]> {
   return out;
 }
 
-/** Gathers, dedupes (both within-batch and against AlertLog), and caps candidates. */
-export async function collectAlertCandidates(userId: string): Promise<AlertCandidate[]> {
+/**
+ * Gathers, dedupes (both within-batch and against AlertLog), and caps candidates.
+ * Dedupe is per `channel` (PHASE-F1): a user on email + WhatsApp is told about a
+ * tender once on each channel, and a WhatsApp send that failed is retried on the
+ * next tick without re-sending the email that already went out.
+ */
+export async function collectAlertCandidates(
+  userId: string,
+  channel: DeliveryChannel = "email",
+): Promise<AlertCandidate[]> {
   const [saved, matched, changed, awarded] = await Promise.all([
     fromSavedSearches(userId),
     fromMatches(userId),
@@ -219,7 +232,7 @@ export async function collectAlertCandidates(userId: string): Promise<AlertCandi
     }
   }
 
-  const sent = await alreadySent(userId, [...byTender.keys()]);
+  const sent = await alreadySent(userId, channel, [...byTender.keys()]);
   const fresh = [...byTender.values()].filter((c) => !sent.has(`${c.tenderId}:${c.reason}`));
 
   fresh.sort(

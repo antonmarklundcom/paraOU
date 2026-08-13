@@ -127,7 +127,10 @@ into a scratch database) — an untested backup is not a backup.
 - Multi-profile **switcher UI** for Business's 3-profile entitlement — the
   API/data model support it (`plan.ts` `maxProfiles`), the `/perfil` wizard
   and `/panel` still assume one profile per account.
-- WhatsApp alerts (docs/00 Business tier promise) — email only today.
+- ~~WhatsApp alerts~~ — **built (Phase F1)**, but never sent to a real handset:
+  it needs a Twilio (or 360dialog) account, three Meta-approved Spanish
+  templates, and the webhook URL registered. Full checklist: `docs/09-whatsapp.md`.
+  Without those it runs on a dev transport that logs instead of sending.
 - Competitor watchlists, award-history analytics beyond the buyer-history
   teaser already on tender detail pages.
 - Local payment rails (Bancard, Tigo Money) — Stripe only for now (docs/06 risk B4).
