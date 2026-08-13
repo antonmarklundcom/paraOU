@@ -22,6 +22,11 @@ Stripe billing, Business-tier document analysis, `/admin`, and the launch
 checklist — see [docs/08-launch.md](docs/08-launch.md) and the
 [owner checklist](#launching-owner-must-do) below before going live.
 
+**Post-launch fast-follows (see `PLAN.md` Phase F):** multi-profile switcher
+(F2), PAC early-warning planned-purchase feed (F3), and "¿por qué perdí?"
+award-loss notifications (F4) are merged. WhatsApp alerts (F1) is the one
+fast-follow still outstanding.
+
 | Phase                                    | Status                                                                                |
 | ---------------------------------------- | ------------------------------------------------------------------------------------- |
 | 1 — Ingestion (client, DB, worker)       | ✅ built & tested (fixtures mode)                                                     |
