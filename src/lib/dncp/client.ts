@@ -10,6 +10,7 @@ import {
   type OcdsReleasePackage,
 } from "./ocds.js";
 import { planificacionPackageSchema, type PlanificacionPackage } from "./planning.js";
+import { ENDPOINTS } from "./endpoints.js";
 
 export interface DncpClientOptions {
   apiBase: string;
@@ -40,8 +41,9 @@ export class DncpApiError extends Error {
  * exponential backoff, refreshing the token once on 401, and validating every
  * response body with zod (docs/01; PHASE-1 step 3).
  *
- * ⚠️ The OCDS endpoint paths/params below are modelled from OCDS + DNCP V2 and MUST
- * be confirmed against the live V3 Swagger (PHASE-1 step 2 / docs/06 risk T1).
+ * ⚠️ The endpoint paths/params are modelled from OCDS + DNCP V2 and MUST be
+ * confirmed against the live V3 Swagger (PHASE-1 step 2 / docs/06 risk T1) — see
+ * the ENDPOINTS descriptor in ./endpoints.ts, the single place to reconcile them.
  */
 export class DncpClient {
   private readonly apiBase: string;
@@ -171,16 +173,17 @@ export class DncpClient {
     dateTo?: string;
     page?: number;
   }): Promise<OcdsReleasePackage> {
+    const endpoint = ENDPOINTS.searchReleases;
     const query: Record<string, string | number> = {};
-    if (params.dateFrom) query.fecha_desde = params.dateFrom;
-    if (params.dateTo) query.fecha_hasta = params.dateTo;
-    if (params.page) query.page = params.page;
-    return this.get("ocds/releases", releasePackageSchema, query);
+    if (params.dateFrom) query[endpoint.query.dateFrom] = params.dateFrom;
+    if (params.dateTo) query[endpoint.query.dateTo] = params.dateTo;
+    if (params.page) query[endpoint.query.page] = params.page;
+    return this.get(endpoint.path, releasePackageSchema, query);
   }
 
   /** Fetch the OCDS record package (full lifecycle) for one process by ocid. */
   async getRecordPackage(ocid: string): Promise<OcdsRecordPackage> {
-    return this.get(`ocds/record/${encodeURIComponent(ocid)}`, recordPackageSchema);
+    return this.get(ENDPOINTS.getRecordPackage.path(ocid), recordPackageSchema);
   }
 
   // ── planificaciones (PAC) — bespoke endpoint, not OCDS (docs/01 table; F3) ──────
@@ -199,12 +202,13 @@ export class DncpClient {
     anio?: number;
     page?: number;
   }): Promise<PlanificacionPackage> {
+    const endpoint = ENDPOINTS.searchPlanificaciones;
     const query: Record<string, string | number> = {};
-    if (params.dateFrom) query.fecha_desde = params.dateFrom;
-    if (params.dateTo) query.fecha_hasta = params.dateTo;
-    if (params.anio) query.anio = params.anio;
-    if (params.page) query.page = params.page;
-    return this.get("planificaciones", planificacionPackageSchema, query);
+    if (params.dateFrom) query[endpoint.query.dateFrom] = params.dateFrom;
+    if (params.dateTo) query[endpoint.query.dateTo] = params.dateTo;
+    if (params.anio) query[endpoint.query.anio] = params.anio;
+    if (params.page) query[endpoint.query.page] = params.page;
+    return this.get(endpoint.path, planificacionPackageSchema, query);
   }
 }
 
