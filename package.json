@@ -22,6 +22,7 @@
     "sync:once": "tsx src/worker/runSyncOnce.ts",
     "backfill": "tsx src/worker/backfill.ts",
     "ai:smoke": "tsx scripts/ai-smoke.ts",
+    "capture:dncp": "tsx scripts/capture-dncp.ts",
     "embed:backfill": "tsx src/worker/embedBackfill.ts",
     "prisma:migrate": "prisma migrate dev",
     "prisma:deploy": "prisma migrate deploy",
