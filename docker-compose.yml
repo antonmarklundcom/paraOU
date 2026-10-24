@@ -13,10 +13,12 @@ services:
     restart: unless-stopped
     environment:
       POSTGRES_USER: paraou
-      POSTGRES_PASSWORD: paraou
+      # Dev default only. docker-compose.prod.yml REQUIRES a real value.
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-paraou}
       POSTGRES_DB: paraou
     ports:
-      - "5432:5432"
+      # Localhost only: Docker-published ports bypass UFW. The prod overlay drops it.
+      - "127.0.0.1:5432:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
@@ -32,7 +34,7 @@ services:
       dockerfile: Dockerfile
     command: ["node_modules/.bin/next", "start", "-p", "3000"]
     environment:
-      DATABASE_URL: postgresql://paraou:paraou@db:5432/paraou
+      DATABASE_URL: postgresql://paraou:${POSTGRES_PASSWORD:-paraou}@db:5432/paraou
     env_file:
       - .env
     ports:
@@ -48,7 +50,7 @@ services:
       dockerfile: Dockerfile
     command: ["node_modules/.bin/tsx", "src/worker/worker.ts"]
     environment:
-      DATABASE_URL: postgresql://paraou:paraou@db:5432/paraou
+      DATABASE_URL: postgresql://paraou:${POSTGRES_PASSWORD:-paraou}@db:5432/paraou
     env_file:
       - .env
     depends_on:

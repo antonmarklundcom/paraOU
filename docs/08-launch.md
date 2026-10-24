@@ -28,8 +28,10 @@ git clone <repo-url> paraou && cd paraou
 cp .env.example .env
 ```
 
-Fill in `.env`: `DATABASE_URL` (leave as the compose default,
-`postgresql://paraou:paraou@db:5432/paraou`), `DNCP_*`, `GEMINI_API_KEY`,
+Fill in `.env`: `POSTGRES_PASSWORD` (required in prod; URL-safe, e.g.
+`openssl rand -hex 24` — compose builds the `web`/`worker`/`migrate`
+`DATABASE_URL` from it, so `DATABASE_URL` in `.env` is not used by the
+containers), `DNCP_*`, `GEMINI_API_KEY`,
 `AUTH_SECRET` (`openssl rand -base64 32`), `RESEND_API_KEY`,
 `NEXT_PUBLIC_APP_URL` (your real domain, `https://...`), `STRIPE_SECRET_KEY` +
 `STRIPE_WEBHOOK_SECRET` + the four `STRIPE_PRICE_*` ids (create these Prices in
@@ -45,6 +47,11 @@ real domain and email.
 docker compose -f docker-compose.yml -f docker-compose.prod.yml \
   --profile app up -d --build
 ```
+
+Requires Docker Compose >= 2.24. The prod overlay publishes no host port for
+`db` (`ports: !reset []`) and refuses to start without `POSTGRES_PASSWORD`.
+Confirm once with `docker compose -f docker-compose.yml -f docker-compose.prod.yml
+--profile app config` (the `db` service must have no `ports:`).
 
 This starts `db` (Postgres + pgvector), runs `migrate` once (`prisma migrate
 deploy`), then `web`, `worker`, and `caddy` (automatic HTTPS via Let's

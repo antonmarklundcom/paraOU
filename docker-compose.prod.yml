@@ -4,14 +4,21 @@
 #     --profile app up -d --build
 #
 # Adds: Caddy (automatic HTTPS via Let's Encrypt) and a one-shot migration
-# runner. NOTE: the base docker-compose.yml publishes db on host port 5432 for
-# local dev convenience — on the VPS, either delete that `ports:` entry from
-# docker-compose.yml directly, or block 5432 at the VPS firewall (ufw deny 5432).
-# `web`/`worker`/`migrate` reach `db` over the Docker network regardless.
+# runner.
+# Requires Docker Compose >= 2.24 (`!reset` tag). Set POSTGRES_PASSWORD in the
+# shell or in .env (use a URL-safe value, e.g. `openssl rand -hex 24`): it is
+# required here and also used in the DATABASE_URL of web/worker/migrate.
+# The base file publishes db on 127.0.0.1:5432 for local dev; Compose MERGES
+# `ports:` lists across files, so this overlay clears it with `!reset []` -
+# the db is then reachable only on the Docker network (Docker-published ports
+# bypass UFW, so a firewall rule alone would not protect it).
 
 services:
   db:
     restart: always
+    environment:
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}
+    ports: !reset []
 
   migrate:
     profiles: ["app"]
@@ -20,7 +27,7 @@ services:
       dockerfile: Dockerfile
     command: ["node_modules/.bin/prisma", "migrate", "deploy"]
     environment:
-      DATABASE_URL: postgresql://paraou:paraou@db:5432/paraou
+      DATABASE_URL: postgresql://paraou:${POSTGRES_PASSWORD}@db:5432/paraou
     env_file:
       - .env
     depends_on:
